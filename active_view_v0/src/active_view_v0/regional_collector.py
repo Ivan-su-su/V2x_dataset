@@ -163,7 +163,10 @@ def collect_regional(
         dt = float(carla_cfg["fixed_delta_seconds"])
         warmup_ticks = int(round(float(regional["warmup_s"]) / dt))
         for _ in range(warmup_ticks):
+            scenario.apply_fixed_signal_plan()
             world.tick()
+            scenario.apply_fixed_signal_plan()
+            scenario.assert_fixed_signal_plan()
 
         duration = float(regional["duration_s"])
         total_loop_ticks, key_stride, expected_frames = _collection_schedule(cfg)
@@ -188,7 +191,10 @@ def collect_regional(
                     mode_record,
                     mode_sensor_names,
                 )
+            scenario.apply_fixed_signal_plan()
             frame_id = int(world.tick())
+            scenario.apply_fixed_signal_plan()
+            scenario.assert_fixed_signal_plan()
             if tick_index % key_stride != 0:
                 continue
             measurements = rig.collect_frame(frame_id, timeout_s=30.0)
@@ -244,6 +250,7 @@ def collect_regional(
                 "evaluation_target_count": len(evaluation_gt),
                 "moving_evaluation_target_count": len(moving_gt),
                 "sensing_agents": sensing_agents,
+                "fixed_signal_states": scenario.fixed_signal_states(),
                 "uav_decision": (
                     {
                         "is_decision_frame": mode_record["is_decision_frame"],
@@ -294,6 +301,22 @@ def collect_regional(
             else 0.0
         )
         mean_ego_speed_mps = float(np.mean(ego_speeds))
+        corridor_forward = np.asarray(corridor.forward_xy, dtype=np.float64)
+        j1_center_xy = np.asarray(corridor.first.center[:2], dtype=np.float64)
+        j2_center_xy = np.asarray(corridor.second.center[:2], dtype=np.float64)
+        ego_j1_progress_m = (ego_locations_array - j1_center_xy) @ corridor_forward
+        ego_j2_distance_m = np.linalg.norm(
+            ego_locations_array - j2_center_xy,
+            axis=1,
+        )
+        maximum_j1_progress_m = float(np.max(ego_j1_progress_m))
+        minimum_j2_distance_m = float(np.min(ego_j2_distance_m))
+        minimum_j1_cross_progress_m = float(
+            density_cfg.get("minimum_j1_cross_progress_m", 0.0)
+        )
+        maximum_ego_j2_distance_m = float(
+            density_cfg.get("maximum_ego_j2_distance_m", float("inf"))
+        )
         minimum_ego_displacement_m = float(
             density_cfg.get("minimum_ego_displacement_m", 0.0)
         )
@@ -308,6 +331,16 @@ def collect_regional(
         if observed_mean < minimum_mean:
             health_failures.append(
                 f"mean target count {observed_mean:.2f} < {minimum_mean:.2f}"
+            )
+        if maximum_j1_progress_m < minimum_j1_cross_progress_m:
+            health_failures.append(
+                f"Ego never cleared J1: max progress {maximum_j1_progress_m:.2f}m < "
+                f"{minimum_j1_cross_progress_m:.2f}m"
+            )
+        if minimum_j2_distance_m > maximum_ego_j2_distance_m:
+            health_failures.append(
+                f"Ego never approached J2: min distance {minimum_j2_distance_m:.2f}m > "
+                f"{maximum_ego_j2_distance_m:.2f}m"
             )
         if ego_displacement_m < minimum_ego_displacement_m:
             health_failures.append(
@@ -334,6 +367,10 @@ def collect_regional(
                 "ego_displacement_m": ego_displacement_m,
                 "ego_sampled_path_m": ego_path_m,
                 "mean_ego_speed_mps": mean_ego_speed_mps,
+                "maximum_j1_progress_m": maximum_j1_progress_m,
+                "minimum_j2_distance_m": minimum_j2_distance_m,
+                "minimum_j1_cross_progress_required_m": minimum_j1_cross_progress_m,
+                "maximum_ego_j2_distance_required_m": maximum_ego_j2_distance_m,
                 "minimum_ego_displacement_required_m": minimum_ego_displacement_m,
                 "minimum_mean_ego_speed_required_mps": minimum_mean_ego_speed_mps,
             },
@@ -358,6 +395,8 @@ def collect_regional(
         print(f"Regional collection complete: {run_dir} ({keyframe_count} keyframes)")
         return run_dir
     finally:
+        if scenario is not None:
+            scenario.release_fixed_signal_plan()
         # CARLA 0.9.16 can terminate the whole Python interpreter when many
         # attached sensors and their parent vehicles are destroyed one by one.
         # A single server-side batch avoids calling methods on wrappers whose
