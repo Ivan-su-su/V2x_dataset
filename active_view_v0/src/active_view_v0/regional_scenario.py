@@ -74,6 +74,7 @@ class RegionalIntersectionScenario:
         self.actors: list[Any] = []
         self.routes: dict[str, VehicleRoute] = {}
         self._rng = random.Random(int(cfg["carla"]["seed"]))
+        self._fixed_signal_states: dict[int, dict[str, Any]] = {}
 
     def setup(self) -> None:
         self._destroy_stale_owned_actors()
@@ -121,6 +122,13 @@ class RegionalIntersectionScenario:
             float(regional.get("car3_route_tail_m", 100.0)),
         )
 
+        self._configure_fixed_signal_plan(
+            j1_axis_yaw=float(
+                self.corridor.corridor_waypoints[0].transform.rotation.yaw
+            ),
+            j2_axis_yaw=float(car3_route[0].transform.rotation.yaw),
+        )
+
         self._spawn_cav(
             "regional_ego",
             ego_route,
@@ -157,6 +165,7 @@ class RegionalIntersectionScenario:
                 for role, item in self.routes.items()
             },
             "owned_actor_ids": [int(actor.id) for actor in self.actors],
+            "fixed_signal_plan": self.fixed_signal_metadata(),
         }
 
     def actor_states(self) -> list[dict[str, Any]]:
@@ -194,6 +203,7 @@ class RegionalIntersectionScenario:
         return output
 
     def close(self) -> None:
+        self.release_fixed_signal_plan()
         for actor in reversed(self.actors):
             try:
                 actor.destroy()
@@ -213,12 +223,13 @@ class RegionalIntersectionScenario:
         for spec in regional.get("support_vehicles", []):
             role = str(spec["role"])
             route_kind = str(spec["route"])
-            if route_kind == "j2_cross":
+            if route_kind in {"j2_cross", "j2_cross_reverse"}:
                 route = cross_route(
                     self.corridor.second.junction,
                     corridor_yaw,
                     float(spec["start_offset_m"]),
                     float(regional["route_exit_distance_m"]),
+                    reverse=route_kind.endswith("_reverse"),
                 )
             elif route_kind == "j1_cross":
                 route = cross_route(
@@ -318,6 +329,142 @@ class RegionalIntersectionScenario:
             color=self.COLORS.get(role, "#64748b"),
         )
 
+    def _configure_fixed_signal_plan(
+        self,
+        j1_axis_yaw: float,
+        j2_axis_yaw: float,
+    ) -> None:
+        """Keep J1 open along the Ego corridor and J2 open transversely.
+
+        The assignments are re-applied immediately before and after every
+        synchronous tick by the preview/collector. This avoids freezing every
+        traffic light in Town03 while preventing CARLA's signal controller from
+        changing the two experimental junctions.
+        """
+        regional_cfg = self.cfg["regional"]
+        plan_cfg = regional_cfg.get("fixed_signal_plan", {})
+        self._fixed_signal_states.clear()
+        if not bool(plan_cfg.get("enabled", False)):
+            return
+
+        import carla
+
+        tolerance = float(plan_cfg.get("axis_tolerance_deg", 35.0))
+        groups: list[tuple[str, list[Any], float]] = [
+            (
+                "J1_corridor_green",
+                _traffic_light_group(self.world, self.corridor.first),
+                float(j1_axis_yaw),
+            ),
+            (
+                "J2_cross_green",
+                _traffic_light_group(self.world, self.corridor.second),
+                float(j2_axis_yaw),
+            ),
+        ]
+        seen_ids: set[int] = set()
+        for label, lights, green_axis_yaw in groups:
+            group_ids = {int(light.id) for light in lights}
+            overlap = seen_ids.intersection(group_ids)
+            if overlap:
+                raise RuntimeError(
+                    f"fixed-signal junction groups overlap at traffic lights {sorted(overlap)}"
+                )
+            seen_ids.update(group_ids)
+            green_count = 0
+            red_count = 0
+            for light in lights:
+                stop_yaws = [
+                    float(waypoint.transform.rotation.yaw)
+                    for waypoint in light.get_stop_waypoints()
+                ]
+                is_green = any(
+                    _axis_heading_error_deg(yaw, green_axis_yaw) <= tolerance
+                    for yaw in stop_yaws
+                )
+                expected = (
+                    carla.TrafficLightState.Green
+                    if is_green
+                    else carla.TrafficLightState.Red
+                )
+                green_count += int(is_green)
+                red_count += int(not is_green)
+                self._fixed_signal_states[int(light.id)] = {
+                    "actor": light,
+                    "expected": expected,
+                    "junction": label,
+                    "green_axis_yaw": green_axis_yaw,
+                    "stop_yaws": stop_yaws,
+                }
+            if green_count == 0 or red_count == 0:
+                raise RuntimeError(
+                    f"{label} signal mapping is ambiguous: "
+                    f"green={green_count}, red={red_count}, axis={green_axis_yaw:.1f}"
+                )
+        self.apply_fixed_signal_plan()
+        self.assert_fixed_signal_plan()
+
+    def apply_fixed_signal_plan(self) -> None:
+        for record in self._fixed_signal_states.values():
+            light = record["actor"]
+            if light.is_alive:
+                light.set_state(record["expected"])
+
+    def assert_fixed_signal_plan(self) -> None:
+        mismatches: list[str] = []
+        for light_id, record in self._fixed_signal_states.items():
+            light = record["actor"]
+            if not light.is_alive:
+                mismatches.append(f"{light_id}:destroyed")
+                continue
+            actual = light.get_state()
+            if actual != record["expected"]:
+                mismatches.append(
+                    f"{light_id}:{_traffic_light_state_name(actual)}!="
+                    f"{_traffic_light_state_name(record['expected'])}"
+                )
+        if mismatches:
+            raise RuntimeError("fixed traffic-light plan drifted: " + ", ".join(mismatches))
+
+    def fixed_signal_metadata(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "traffic_light_id": int(light_id),
+                "junction": str(record["junction"]),
+                "expected_state": _traffic_light_state_name(record["expected"]),
+                "green_axis_yaw": float(record["green_axis_yaw"]),
+                "stop_yaws": [float(yaw) for yaw in record["stop_yaws"]],
+            }
+            for light_id, record in sorted(self._fixed_signal_states.items())
+        ]
+
+    def fixed_signal_states(self) -> list[dict[str, Any]]:
+        output: list[dict[str, Any]] = []
+        for light_id, record in sorted(self._fixed_signal_states.items()):
+            light = record["actor"]
+            output.append(
+                {
+                    "traffic_light_id": int(light_id),
+                    "junction": str(record["junction"]),
+                    "expected_state": _traffic_light_state_name(record["expected"]),
+                    "actual_state": (
+                        _traffic_light_state_name(light.get_state())
+                        if light.is_alive
+                        else "Destroyed"
+                    ),
+                }
+            )
+        return output
+
+    def release_fixed_signal_plan(self) -> None:
+        if not self._fixed_signal_states:
+            return
+        try:
+            self.world.reset_all_traffic_lights()
+        except RuntimeError:
+            pass
+        self._fixed_signal_states.clear()
+
     def _spawn_background(self, requested: int) -> None:
         center = np.asarray(self.corridor.center[:2], dtype=np.float64)
         radius = float(self.cfg["regional"]["background_spawn_radius_m"])
@@ -376,6 +523,52 @@ class RegionalIntersectionScenario:
                     actor.destroy()
                 except Exception:
                     pass
+
+
+
+def _traffic_light_group(world: Any, junction_info: Any) -> list[Any]:
+    """Return the signal group whose stop lines are nearest this junction."""
+    center_x, center_y = map(float, junction_info.center[:2])
+    candidates: list[tuple[float, Any]] = []
+    for light in world.get_actors().filter("traffic.traffic_light*"):
+        stop_waypoints = list(light.get_stop_waypoints())
+        if not stop_waypoints:
+            continue
+        distance = min(
+            float(
+                np.hypot(
+                    waypoint.transform.location.x - center_x,
+                    waypoint.transform.location.y - center_y,
+                )
+            )
+            for waypoint in stop_waypoints
+        )
+        candidates.append((distance, light))
+    if not candidates:
+        raise RuntimeError(
+            f"junction {junction_info.junction_id} has no nearby traffic lights"
+        )
+    distance, seed = min(candidates, key=lambda item: item[0])
+    search_radius = max(float(junction_info.extent[0]), float(junction_info.extent[1])) + 35.0
+    if distance > search_radius:
+        raise RuntimeError(
+            f"nearest traffic light to junction {junction_info.junction_id} is "
+            f"{distance:.1f}m away (limit {search_radius:.1f}m)"
+        )
+    group = list(seed.get_group_traffic_lights())
+    if not group:
+        group = [seed]
+    return sorted(group, key=lambda light: int(light.id))
+
+
+def _axis_heading_error_deg(candidate_yaw: float, axis_yaw: float) -> float:
+    """Angular error to an undirected road axis (yaw and yaw+180 are equal)."""
+    delta = abs((float(candidate_yaw) - float(axis_yaw) + 180.0) % 360.0 - 180.0)
+    return min(delta, abs(180.0 - delta))
+
+
+def _traffic_light_state_name(state: Any) -> str:
+    return str(state).rsplit(".", 1)[-1]
 
 
 def _route_yaw(route: tuple[Any, ...]) -> float:
