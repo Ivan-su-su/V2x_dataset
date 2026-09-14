@@ -186,7 +186,16 @@ regional:
     image_size_x: 1800
     image_size_y: 1500
     fov: 105.0
-  save_overhead_rgb: false
+  # Save a real CARLA overhead RGB frame for every synchronized sample,
+  # overlay the same annotations used by regional_preview, then encode 10 FPS.
+  save_overhead_rgb: true
+  annotated_bev:
+    enabled: true
+    make_video: true
+    video_fps: 10.0
+    video_filename: global_bev_rgb_annotated.mp4
+    video_codec: libx264
+    video_quality: 8
 
 grid:
   size: 5
