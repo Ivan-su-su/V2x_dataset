@@ -9,6 +9,7 @@ from active_view_v0.regional_collector import _collection_schedule
 from active_view_v0.regional_preview import _build_motion_summary
 from active_view_v0.regional_scenario import (
     RegionalIntersectionScenario,
+    _axis_heading_error_deg,
     _heading_is_opposite,
     _route_suffix_after_distance,
 )
@@ -89,7 +90,7 @@ def test_dense_20s_config_adds_deterministic_oncoming_flow() -> None:
     cfg = load_config(path)
     assert _collection_schedule(cfg) == (200, 1, 200)
     assert cfg["regional"]["ego_speed_difference_pct"] == 0.0
-    assert cfg["regional"]["ego_start_advance_m"] == 20.0
+    assert cfg["regional"]["ego_start_advance_m"] == 40.0
     support = cfg["regional"]["support_vehicles"]
     assert sum(item["route"] == "corridor_oncoming" for item in support) == 5
     assert all(
@@ -99,6 +100,86 @@ def test_dense_20s_config_adds_deterministic_oncoming_flow() -> None:
     )
     assert cfg["regional"]["density_validation"]["minimum_ego_displacement_m"] == 40.0
 
+
+
+def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
+    path = Path(__file__).parents[1] / "configs" / "dense_dynamic_town03_40s.yaml"
+    cfg = load_config(path)
+    assert _collection_schedule(cfg) == (400, 1, 400)
+    regional = cfg["regional"]
+    assert regional["duration_s"] == 40.0
+    assert regional["ego_start_advance_m"] == 0.0
+    assert regional["fixed_signal_plan"]["enabled"] is True
+    support = regional["support_vehicles"]
+    assert sum(item["route"] == "j2_cross" for item in support) >= 5
+    assert sum(item["route"] == "j2_cross_reverse" for item in support) >= 5
+    north = [
+        item
+        for item in support
+        if item["role"].startswith("regional_north_oncoming_")
+    ]
+    assert len(north) == 4
+    assert [item["start_offset_m"] for item in north] == [125.0, 150.0, 175.0, 200.0]
+    assert regional["density_validation"]["minimum_j1_cross_progress_m"] == 8.0
+    assert regional["density_validation"]["maximum_ego_j2_distance_m"] == 25.0
+    assert cfg["scoring"]["ego_roi"] == {
+        "min": [-100.0, -60.0],
+        "max": [100.0, 60.0],
+    }
+
+
+def test_traffic_light_axis_is_bidirectional() -> None:
+    assert _axis_heading_error_deg(0.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(180.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(-180.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(90.0, 0.0) == 90.0
+    assert _axis_heading_error_deg(-90.0, 0.0) == 90.0
+
+
+def test_reverse_cross_route_selects_legal_opposite_lane(monkeypatch) -> None:
+    import active_view_v0.corridors as corridors_module
+
+    class DirectedWaypoint:
+        def __init__(self, x: float, yaw: float):
+            self.transform = SimpleNamespace(
+                location=_RouteLocation(x),
+                rotation=SimpleNamespace(yaw=float(yaw)),
+            )
+
+        def previous(self, distance: float):
+            return [self]
+
+        def next(self, distance: float):
+            return [self]
+
+    forward_entry = DirectedWaypoint(0.0, 90.0)
+    forward_exit = DirectedWaypoint(1.0, 90.0)
+    reverse_entry = DirectedWaypoint(10.0, -90.0)
+    reverse_exit = DirectedWaypoint(11.0, -90.0)
+    junction = SimpleNamespace(
+        id=7,
+        get_waypoints=lambda lane_type: [
+            (forward_entry, forward_exit),
+            (reverse_entry, reverse_exit),
+        ],
+    )
+    monkeypatch.setattr(corridors_module, "_driving_lane_type", lambda: object())
+
+    forward = corridors_module.cross_route(junction, 0.0, 5.0, 5.0)
+    reverse = corridors_module.cross_route(
+        junction,
+        0.0,
+        5.0,
+        5.0,
+        reverse=True,
+    )
+
+    assert forward[0].transform.rotation.yaw == 90.0
+    assert reverse[0].transform.rotation.yaw == -90.0
+    assert _heading_is_opposite(
+        forward[0].transform.rotation.yaw,
+        reverse[0].transform.rotation.yaw,
+    )
 
 def test_opposite_heading_gate() -> None:
     assert _heading_is_opposite(0.0, 180.0)
