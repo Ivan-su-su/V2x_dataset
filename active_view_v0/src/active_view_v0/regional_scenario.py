@@ -419,6 +419,19 @@ class RegionalIntersectionScenario:
                     f"{label} route-to-signal mapping is ambiguous: "
                     f"green={green_count}, red={red_count}"
                 )
+            green_ids = sorted(
+                light_id
+                for light_id, record in self._fixed_signal_states.items()
+                if record["junction"] == label
+                and record["expected"] == carla.TrafficLightState.Green
+            )
+            red_ids = sorted(
+                light_id
+                for light_id, record in self._fixed_signal_states.items()
+                if record["junction"] == label
+                and record["expected"] == carla.TrafficLightState.Red
+            )
+            print(f"Fixed signals {label}: green={green_ids}, red={red_ids}")
 
         # TrafficLight.get_state() exposes the state from the last server
         # tick. Do not assert here: these assignments have not reached a tick
