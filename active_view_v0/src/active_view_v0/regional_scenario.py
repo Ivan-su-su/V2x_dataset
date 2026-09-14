@@ -403,8 +403,11 @@ class RegionalIntersectionScenario:
                     f"{label} signal mapping is ambiguous: "
                     f"green={green_count}, red={red_count}, axis={green_axis_yaw:.1f}"
                 )
+        # TrafficLight.get_state() exposes the state from the last server
+        # tick. Do not assert here: these assignments have not reached a tick
+        # yet. Preview/collection validate them immediately after the first
+        # synchronous world.tick().
         self.apply_fixed_signal_plan()
-        self.assert_fixed_signal_plan()
 
     def apply_fixed_signal_plan(self) -> None:
         for record in self._fixed_signal_states.values():
