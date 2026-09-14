@@ -157,8 +157,19 @@ def select_connected_junctions(
     return candidates[int(rank)]
 
 
-def cross_route(junction: Any, reference_yaw_deg: float, before_m: float, after_m: float) -> list[Any]:
-    """Choose the straight route most orthogonal to the corridor direction."""
+def cross_route(
+    junction: Any,
+    reference_yaw_deg: float,
+    before_m: float,
+    after_m: float,
+    reverse: bool = False,
+) -> list[Any]:
+    """Choose one direction of the straight road orthogonal to the corridor.
+
+    reverse=True selects the legal opposite-direction lane pair of the same
+    transverse road. It does not reverse waypoint order because CARLA lanes are
+    directed and TrafficManager requires legal lane direction.
+    """
     pairs = list(junction.get_waypoints(_driving_lane_type()))
     straight_pairs = [
         pair
@@ -178,7 +189,37 @@ def cross_route(junction: Any, reference_yaw_deg: float, before_m: float, after_
         turn = angular_difference_deg(entry.transform.rotation.yaw, exit_wp.transform.rotation.yaw)
         return orthogonal_error, turn
 
-    entry, exit_wp = min(straight_pairs, key=key)
+    primary = min(straight_pairs, key=key)
+    if reverse:
+        primary_yaw = float(primary[0].transform.rotation.yaw)
+        opposite_pairs = [
+            pair
+            for pair in straight_pairs
+            if angular_difference_deg(
+                pair[0].transform.rotation.yaw,
+                primary_yaw,
+            )
+            >= 135.0
+        ]
+        if not opposite_pairs:
+            raise RuntimeError(
+                f"junction {junction.id} has no legal reverse transverse route"
+            )
+        entry, exit_wp = min(
+            opposite_pairs,
+            key=lambda pair: (
+                abs(
+                    180.0
+                    - angular_difference_deg(
+                        pair[0].transform.rotation.yaw,
+                        primary_yaw,
+                    )
+                ),
+                key(pair),
+            ),
+        )
+    else:
+        entry, exit_wp = primary
     return _deduplicate_waypoints(
         (waypoint_before(entry, before_m), entry, exit_wp, waypoint_after(exit_wp, after_m))
     )
