@@ -14,6 +14,7 @@ from active_view_v0.regional_scenario import (
     RegionalIntersectionScenario,
     _axis_heading_error_deg,
     _heading_is_opposite,
+    _light_controls_route,
     _route_suffix_after_distance,
 )
 from active_view_v0.uav_modes import (
@@ -112,7 +113,11 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
     regional = cfg["regional"]
     assert regional["duration_s"] == 40.0
     assert regional["ego_start_advance_m"] == 0.0
-    assert regional["fixed_signal_plan"]["enabled"] is True
+    assert regional["fixed_signal_plan"] == {
+        "enabled": True,
+        "route_heading_tolerance_deg": 25.0,
+        "reapply_each_tick": True,
+    }
     assert regional["save_overhead_rgb"] is True
     assert regional["annotated_bev"] == {
         "enabled": True,
@@ -202,6 +207,36 @@ def test_annotated_video_encoder_writes_mp4(tmp_path: Path) -> None:
 
     assert output.exists()
     assert output.stat().st_size > 0
+
+
+def test_signal_matching_uses_directed_route_lanes() -> None:
+    class Waypoint:
+        def __init__(self, x: float, y: float, yaw: float, road_id: int, lane_id: int):
+            self.road_id = road_id
+            self.lane_id = lane_id
+            self.transform = SimpleNamespace(
+                location=SimpleNamespace(
+                    x=x,
+                    y=y,
+                    z=0.0,
+                    distance=lambda other: float(
+                        np.hypot(x - other.x, y - other.y)
+                    ),
+                ),
+                rotation=SimpleNamespace(yaw=yaw),
+            )
+
+    route = [
+        Waypoint(0.0, 0.0, 90.0, 12, -1),
+        Waypoint(0.0, 10.0, 90.0, 12, -1),
+    ]
+    exact_stop = [Waypoint(0.0, 2.0, 90.0, 12, -1)]
+    opposite_stop = [Waypoint(0.0, 2.0, -90.0, 99, 1)]
+    section_boundary_stop = [Waypoint(0.5, 2.0, 90.0, 99, -1)]
+
+    assert _light_controls_route(exact_stop, route)
+    assert _light_controls_route(section_boundary_stop, route)
+    assert not _light_controls_route(opposite_stop, route)
 
 
 def test_traffic_light_axis_is_bidirectional() -> None:
