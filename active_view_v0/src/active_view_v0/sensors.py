@@ -87,12 +87,22 @@ class SensorRig:
             for name, stream in self.streams.items()
         }
 
-    def close(self) -> None:
+    def stop(self) -> None:
+        """Stop callbacks without destroying actors.
+
+        Regional collection destroys the full sensor/vehicle set in one
+        server-side batch, but callbacks must be stopped first to avoid
+        out-of-scope and bad-file-descriptor errors during exception cleanup.
+        """
         for stream in self.streams.values():
             try:
-                stream.actor.stop()
+                if stream.actor.is_alive:
+                    stream.actor.stop()
             except Exception:
                 pass
+
+    def close(self) -> None:
+        self.stop()
         for stream in self.streams.values():
             try:
                 stream.actor.destroy()
