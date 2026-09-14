@@ -8,12 +8,13 @@ from typing import Any
 
 import numpy as np
 
+from .bev_render import annotate_rgb_snapshot
 from .collector import _class_name, _save_measurements, _write_json
 from .config import dump_effective_config, load_config
 from .corridors import select_connected_junctions
 from .geometry import carla_matrix, points_in_regional_roi, transform_points, transform_record
 from .regional_layout import build_regional_layout
-from .regional_preview import _add_overhead_camera
+from .regional_preview import _add_overhead_camera, _sensor_range_summary
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
 from .uav_modes import UAVModePlanner
@@ -123,6 +124,17 @@ def collect_regional(
             cfg,
             mode_sensor_names=mode_sensor_names,
         )
+        overhead_stream = rig.streams.get("global_bev_rgb")
+        overhead_camera = overhead_stream.actor if overhead_stream is not None else None
+        annotation_cfg = regional.get("annotated_bev", {})
+        save_annotated_bev = bool(
+            annotation_cfg.get("enabled", True) and overhead_camera is not None
+        )
+        annotated_bev_dir = run_dir / "visualization" / "annotated_bev_frames"
+        if save_annotated_bev:
+            annotated_bev_dir.mkdir(parents=True, exist_ok=True)
+        annotated_bev_paths: list[Path] = []
+        sensor_ranges = _sensor_range_summary(cfg, corridor, grid)
 
         roi_mode = str(cfg["scoring"].get("roi_mode", "ego_moving"))
         ego_roi = cfg["scoring"]["ego_roi"]
@@ -157,6 +169,30 @@ def collect_regional(
             "sensor_parameters": cfg["sensors"],
             "uav_mode_names": list(mode_sensor_names),
             "uav_mode_sensor_names": mode_sensor_names,
+            "visualization": {
+                "annotated_overhead_frames": (
+                    str(annotated_bev_dir.relative_to(run_dir))
+                    if save_annotated_bev
+                    else None
+                ),
+                "annotated_overhead_video": (
+                    str(
+                        (
+                            run_dir
+                            / "visualization"
+                            / str(
+                                annotation_cfg.get(
+                                    "video_filename",
+                                    "global_bev_rgb_annotated.mp4",
+                                )
+                            )
+                        ).relative_to(run_dir)
+                    )
+                    if save_annotated_bev
+                    and bool(annotation_cfg.get("make_video", True))
+                    else None
+                ),
+            },
         }
         _write_json(run_dir / "metadata.json", metadata)
 
@@ -235,11 +271,37 @@ def collect_regional(
                     or ["regional_ego", "regional_car1", "regional_car3"],
                 )
             )
+            actor_states = scenario.actor_states()
             sensing_agents = {
                 state["role_name"]: state
-                for state in scenario.actor_states()
+                for state in actor_states
                 if state["role_name"] in tracked_roles
             }
+            visualization_record: dict[str, Any] = {}
+            if save_annotated_bev:
+                raw_rgb_record = sensor_records.get("global_bev_rgb")
+                if raw_rgb_record is None:
+                    raise RuntimeError(
+                        "annotated BEV is enabled but global_bev_rgb was not collected"
+                    )
+                raw_rgb_path = frame_dir / str(raw_rgb_record["path"])
+                annotated_path = annotated_bev_dir / f"{keyframe_count:06d}.png"
+                annotate_rgb_snapshot(
+                    raw_rgb_path,
+                    annotated_path,
+                    overhead_camera,
+                    actor_states,
+                    rsu_xyz,
+                    grid,
+                    [list(corridor.first.center), list(corridor.second.center)],
+                    elapsed_s,
+                    sensor_ranges=sensor_ranges,
+                    evaluation_roi=evaluation_roi,
+                )
+                annotated_bev_paths.append(annotated_path)
+                visualization_record["annotated_global_bev_rgb"] = str(
+                    annotated_path.relative_to(run_dir)
+                )
             frame_record = {
                 "keyframe_index": keyframe_count,
                 "carla_frame": frame_id,
@@ -261,6 +323,7 @@ def collect_regional(
                     else None
                 ),
                 "uav_modes": mode_record["modes"] if mode_record is not None else {},
+                "visualization": visualization_record,
                 "sensors": sensor_records,
                 "gt": gt,
             }
@@ -284,6 +347,31 @@ def collect_regional(
             )
         if mode_planner is not None:
             _write_json(run_dir / "uav_modes.json", mode_planner.summary())
+        video_path = None
+        if save_annotated_bev and bool(annotation_cfg.get("make_video", True)):
+            video_path = (
+                run_dir
+                / "visualization"
+                / str(
+                    annotation_cfg.get(
+                        "video_filename",
+                        "global_bev_rgb_annotated.mp4",
+                    )
+                )
+            )
+            _encode_annotated_video(
+                annotated_bev_paths,
+                video_path,
+                fps=float(
+                    annotation_cfg.get(
+                        "video_fps",
+                        1.0 / collection_interval_s,
+                    )
+                ),
+                codec=str(annotation_cfg.get("video_codec", "libx264")),
+                quality=int(annotation_cfg.get("video_quality", 8)),
+            )
+            print(f"Annotated BEV video: {video_path}")
         density_cfg = regional.get("density_validation", {})
         minimum_targets = int(density_cfg.get("minimum_targets_per_frame", 1))
         minimum_mean = float(density_cfg.get("minimum_mean_targets", 1.0))
@@ -386,6 +474,12 @@ def collect_regional(
                 "duration_s": duration,
                 "frame_interval_s": collection_interval_s,
                 "decision_interval_s": decision_interval_s,
+                "annotated_bev_frame_count": len(annotated_bev_paths),
+                "annotated_bev_video": (
+                    str(video_path.relative_to(run_dir))
+                    if video_path is not None
+                    else None
+                ),
             },
         )
         if keyframe_count != expected_frames:
@@ -395,6 +489,8 @@ def collect_regional(
         print(f"Regional collection complete: {run_dir} ({keyframe_count} keyframes)")
         return run_dir
     finally:
+        if rig is not None:
+            rig.stop()
         if scenario is not None:
             scenario.release_fixed_signal_plan()
         # CARLA 0.9.16 can terminate the whole Python interpreter when many
@@ -430,6 +526,38 @@ def collect_regional(
             world.apply_settings(original_settings)
         except Exception:
             pass
+
+
+def _encode_annotated_video(
+    frame_paths: list[Path],
+    output_path: Path,
+    *,
+    fps: float,
+    codec: str,
+    quality: int,
+) -> Path:
+    """Encode sequential annotated PNG frames without loading them all at once."""
+    if not frame_paths:
+        raise RuntimeError("cannot encode annotated BEV video: no frames were written")
+    if fps <= 0.0:
+        raise ValueError("annotated BEV video fps must be positive")
+
+    import imageio.v2 as imageio
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with imageio.get_writer(
+        str(output_path),
+        fps=float(fps),
+        codec=str(codec),
+        quality=int(quality),
+        macro_block_size=2,
+    ) as writer:
+        for frame_path in frame_paths:
+            image = imageio.imread(frame_path)
+            if image.ndim == 3 and image.shape[2] == 4:
+                image = image[:, :, :3]
+            writer.append_data(image)
+    return output_path
 
 
 def _spawn_regional_rig(
