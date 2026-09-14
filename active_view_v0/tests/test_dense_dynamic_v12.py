@@ -5,7 +5,10 @@ from types import SimpleNamespace
 import numpy as np
 
 from active_view_v0.config import load_config
-from active_view_v0.regional_collector import _collection_schedule
+from active_view_v0.regional_collector import (
+    _collection_schedule,
+    _encode_annotated_video,
+)
 from active_view_v0.regional_preview import _build_motion_summary
 from active_view_v0.regional_scenario import (
     RegionalIntersectionScenario,
@@ -110,6 +113,15 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
     assert regional["duration_s"] == 40.0
     assert regional["ego_start_advance_m"] == 0.0
     assert regional["fixed_signal_plan"]["enabled"] is True
+    assert regional["save_overhead_rgb"] is True
+    assert regional["annotated_bev"] == {
+        "enabled": True,
+        "make_video": True,
+        "video_fps": 10.0,
+        "video_filename": "global_bev_rgb_annotated.mp4",
+        "video_codec": "libx264",
+        "video_quality": 8,
+    }
     support = regional["support_vehicles"]
     assert sum(item["route"] == "j2_cross" for item in support) >= 5
     assert sum(item["route"] == "j2_cross_reverse" for item in support) >= 5
@@ -126,6 +138,70 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
         "min": [-100.0, -60.0],
         "max": [100.0, 60.0],
     }
+
+
+def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
+    class FakeLight:
+        def __init__(self, actor_id: int):
+            self.id = actor_id
+            self.is_alive = True
+            self.freeze_calls = []
+            self.state_calls = []
+
+        def freeze(self, value: bool) -> None:
+            self.freeze_calls.append(value)
+
+        def set_state(self, value) -> None:
+            self.state_calls.append(value)
+
+    first = FakeLight(1)
+    second = FakeLight(2)
+    world = SimpleNamespace(reset_calls=0)
+    world.reset_all_traffic_lights = lambda: setattr(
+        world, "reset_calls", world.reset_calls + 1
+    )
+    scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
+    scenario.world = world
+    scenario._traffic_lights_frozen = False
+    scenario._fixed_signal_states = {
+        1: {"actor": first, "expected": "green"},
+        2: {"actor": second, "expected": "red"},
+    }
+
+    scenario.apply_fixed_signal_plan()
+    scenario.apply_fixed_signal_plan()
+
+    assert first.freeze_calls == [True]
+    assert first.state_calls == ["green", "green"]
+    assert second.state_calls == ["red", "red"]
+
+    scenario.release_fixed_signal_plan()
+    assert first.freeze_calls == [True, False]
+    assert world.reset_calls == 1
+    assert scenario._fixed_signal_states == {}
+
+
+def test_annotated_video_encoder_writes_mp4(tmp_path: Path) -> None:
+    import imageio.v2 as imageio
+
+    frame_paths = []
+    for index, value in enumerate((32, 224)):
+        path = tmp_path / f"{index:06d}.png"
+        image = np.full((32, 48, 4), value, dtype=np.uint8)
+        image[:, :, 3] = 255
+        imageio.imwrite(path, image)
+        frame_paths.append(path)
+
+    output = _encode_annotated_video(
+        frame_paths,
+        tmp_path / "annotated.mp4",
+        fps=10.0,
+        codec="libx264",
+        quality=8,
+    )
+
+    assert output.exists()
+    assert output.stat().st_size > 0
 
 
 def test_traffic_light_axis_is_bidirectional() -> None:
