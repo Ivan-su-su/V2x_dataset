@@ -1,0 +1,81 @@
+# 首版目标：验证同一动态场景中，25 个反事实 UAV 位置的最优点是否随时间变化。
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 30.0
+  map: Town03
+  fixed_delta_seconds: 0.1
+  traffic_manager_port: 8000
+  seed: 42
+
+output:
+  root: /mnt/disk_4/suyi/active_airv2x/datasets/active_view_v0
+  run_name: town03_pilot_001
+
+scenario:
+  # 先运行 inspect_junctions，再把选中的 id 填进来；null 时自动选排名第一的路口。
+  junction_id: null
+  junction_rank: 0
+  duration_s: 30.0
+  ego_speed_mps: 6.0
+  ego_start_distance_m: 35.0
+  route_exit_distance_m: 45.0
+  roi_half_extent_m: 50.0
+  # 两个方向相反、时间错开的横穿事件，专门用于激发可见性分布变化。
+  event_1: {start_s: 5.0, duration_s: 6.0, side: 1.0}
+  event_2: {start_s: 14.0, duration_s: 6.0, side: -1.0}
+
+grid:
+  size: 5
+  spacing_m: 10.0
+  # Griffin 包含 25±2m 子集；首版使用 25m，而不是 AirV2X 的 80–100m。
+  height_m: 25.0
+  # 2秒 × 5m/s = 10m，速度约束 oracle 每帧最多走到相邻格。
+  keyframe_interval_s: 2.0
+
+sensors:
+  vehicle_lidar:
+    mount: {x: 0.0, y: 0.0, z: 1.8, pitch: 0.0, yaw: 0.0, roll: 0.0}
+    channels: 32
+    range: 80.0
+    points_per_second: 200000
+    rotation_frequency: 10.0
+    upper_fov: 10.0
+    lower_fov: -30.0
+  rsu_lidar:
+    offset_forward_m: 18.0
+    offset_right_m: 18.0
+    height_m: 6.0
+    channels: 64
+    range: 100.0
+    points_per_second: 300000
+    rotation_frequency: 10.0
+    upper_fov: 10.0
+    lower_fov: -40.0
+  uav_lidar:
+    channels: 64
+    range: 80.0
+    points_per_second: 200000
+    rotation_frequency: 10.0
+    # 水平安装，垂直束覆盖地面；CARLA LiDAR 的水平视场固定为 360°。
+    upper_fov: -5.0
+    lower_fov: -90.0
+  preview_cameras:
+    enabled: true
+    image_size_x: 960
+    image_size_y: 540
+    fov: 90.0
+
+scoring:
+  base_sensors: [vehicle_lidar, rsu_lidar]
+  threshold_points: {car: 8, pedestrian: 3, two_wheeler: 5}
+  class_weights: {car: 1.0, pedestrian: 2.0, two_wheeler: 1.5}
+  ignore_roles: [active_view_ego, active_view_occluder]
+  box_margin_m: 0.15
+  gain_weight: 0.5
+  # q(n)=1-exp(-n/tau)，避免二值点数阈值让25个位置全部饱和成同分。
+  quality_tau_points: {car: 40.0, pedestrian: 12.0, two_wheeler: 20.0}
+
+oracle:
+  uav_speed_mps: 5.0
+  movement_penalty_per_m: 0.002

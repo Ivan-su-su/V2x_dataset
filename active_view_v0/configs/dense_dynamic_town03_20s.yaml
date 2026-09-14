@@ -1,0 +1,212 @@
+# v1.3 pilot: 20 seconds / 200 synchronized frames / 1 Hz UAV decisions.
+# The raw frame/sensor schema is identical to the v1.2 Where2comm adapter.
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 60.0
+  map: Town03
+  fixed_delta_seconds: 0.1
+  traffic_manager_port: 8000
+  seed: 42
+
+output:
+  root: /mnt/disk_4/suyi/active_airv2x/datasets/active_view_v0
+  run_name: dense_dynamic_town03_20s_v13_001
+
+regional:
+  junction_1_id: null
+  junction_2_id: null
+  corridor_rank: 0
+  min_junction_separation_m: 30.0
+  max_junction_separation_m: 120.0
+
+  warmup_s: 2.0
+  duration_s: 20.0
+  collection_interval_s: 0.1
+  frame_count: 200
+  include_endpoint: false
+  snapshot_times_s: [0.0, 5.0, 10.0, 15.0, 19.9]
+
+  enable_j1_cav: false
+  agent_sensors:
+    regional_ego: ego_lidar
+    regional_car3: cav2_lidar
+  tracked_roles:
+    - regional_ego
+    - regional_car3
+    - regional_j2_blocker
+    - regional_corridor_blocker
+
+  # Random traffic is only a density supplement. Directional coverage is
+  # guaranteed by the deterministic support routes below.
+  background_vehicle_count: 16
+  minimum_background_spawned: 12
+  background_spawn_radius_m: 165.0
+  route_exit_distance_m: 150.0
+  ego_route_tail_m: 260.0
+  # Move Ego and all longitudinal corridor flows 20 m toward the UAV sersvice
+  # area while preserving their relative headways.
+  ego_start_advance_m: 40.0
+
+  # 0 means the road speed limit. The previous 45 meant 45% slower than it.
+  ego_speed_difference_pct: 0.0
+  car3_start_before_junction_m: 90.0
+  car3_speed_difference_pct: 5.0
+  car3_route_tail_m: 190.0
+  transient_coverage_radius_m: 70.0
+
+  support_vehicles:
+    # J2 transverse convoy. The blocker is moving, not a static prop.
+    - role: regional_j2_blocker
+      route: j2_cross
+      start_offset_m: 64.0
+      speed_difference_pct: 15.0
+      required: true
+      blueprints: [vehicle.mitsubishi.fusorosa, vehicle.carlamotors.european_hgv, vehicle.mercedes.sprinter]
+    - {role: regional_j2_front_1, route: j2_cross, start_offset_m: 42.0, speed_difference_pct: 10.0, required: true}
+    - {role: regional_j2_front_2, route: j2_cross, start_offset_m: 22.0, speed_difference_pct: 8.0, required: true}
+    - {role: regional_j2_rear_1, route: j2_cross, start_offset_m: 112.0, speed_difference_pct: 5.0}
+
+    # J1 transverse traffic covered by the RSU.
+    - {role: regional_j1_cross_1, route: j1_cross, start_offset_m: 24.0, speed_difference_pct: 8.0}
+    - {role: regional_j1_cross_2, route: j1_cross, start_offset_m: 49.0, speed_difference_pct: 12.0}
+    - {role: regional_j1_cross_3, route: j1_cross, start_offset_m: 74.0, speed_difference_pct: 5.0}
+
+    # Same-direction corridor flow ahead of Ego. Vehicles remain separated and
+    # all follow the same legal TrafficManager path.
+    - role: regional_corridor_blocker
+      route: corridor_forward
+      start_offset_m: 26.0
+      speed_difference_pct: 12.0
+      required: true
+      blueprints: [vehicle.carlamotors.european_hgv, vehicle.mitsubishi.fusorosa, vehicle.mercedes.sprinter]
+    - {role: regional_corridor_front_1, route: corridor_forward, start_offset_m: 47.0, speed_difference_pct: 10.0, required: true}
+    - {role: regional_corridor_front_2, route: corridor_forward, start_offset_m: 68.0, speed_difference_pct: 8.0}
+    - {role: regional_corridor_front_3, route: corridor_forward, start_offset_m: 89.0, speed_difference_pct: 5.0}
+    - {role: regional_corridor_front_4, route: corridor_forward, start_offset_m: 110.0, speed_difference_pct: 12.0}
+    - {role: regional_corridor_front_5, route: corridor_forward, start_offset_m: 131.0, speed_difference_pct: 6.0}
+
+    # Same-direction vehicles entering the ROI from behind during the clip.
+    - {role: regional_corridor_rear_1, route: corridor_behind_ego, start_offset_m: 24.0, speed_difference_pct: -5.0}
+    - {role: regional_corridor_rear_2, route: corridor_behind_ego, start_offset_m: 50.0, speed_difference_pct: -8.0}
+
+    - {role: regional_oncoming_1, route: corridor_oncoming, start_offset_m: 16.0, route_tail_m: 190.0, speed_difference_pct: 8.0, required: true}
+    - {role: regional_oncoming_2, route: corridor_oncoming, start_offset_m: 37.0, route_tail_m: 190.0, speed_difference_pct: 5.0, required: true}
+    - {role: regional_oncoming_3, route: corridor_oncoming, start_offset_m: 58.0, route_tail_m: 190.0, speed_difference_pct: 12.0, required: true}
+    - {role: regional_oncoming_4, route: corridor_oncoming, start_offset_m: 79.0, route_tail_m: 190.0, speed_difference_pct: 7.0, required: true}
+    - {role: regional_oncoming_5, route: corridor_oncoming, start_offset_m: 100.0, route_tail_m: 190.0, speed_difference_pct: 3.0, required: true}
+
+  density_validation:
+    minimum_targets_per_frame: 18
+    minimum_mean_targets: 22.0
+    minimum_ego_displacement_m: 40.0
+    minimum_mean_ego_speed_mps: 2.0
+
+  validation:
+    early_end_s: 6.0
+    late_start_s: 13.0
+    minimum_late_targets: 18
+    minimum_rescue_frames_per_phase: 20
+    minimum_directional_row_shift: 1
+    minimum_transient_inside_frames: 20
+    minimum_transient_outside_frames: 20
+    minimum_transient_exit_shift_m: 20.0
+    minimum_occlusion_frames: 20
+    minimum_occlusion_rescue_frames: 10
+    minimum_targets_per_frame_median: 20
+    minimum_missed_instances_per_phase: 20
+    minimum_rescuable_instances_per_phase: 10
+    minimum_dynamic_extra_rescues: 5
+    minimum_dynamic_recall_gain_pp: 1.0
+    minimum_dynamic_movement_m: 15.0
+
+  rsu:
+    offset_forward_m: 0.0
+    offset_right_m: -18.0
+    height_m: 7.0
+
+  uav_grid_offset_forward_m: -8.0
+  uav_grid_offset_right_m: 0.0
+
+  uav_modes:
+    decision_interval_s: 1.0
+    initial_candidate: uav_r2_c2
+    tracking_forward_offset_m: 25.0
+    tracking_right_offset_m: 0.0
+    patrol_candidates:
+      - uav_r2_c2
+      - uav_r2_c3
+      - uav_r2_c4
+      - uav_r1_c4
+      - uav_r0_c4
+      - uav_r0_c3
+      - uav_r0_c2
+      - uav_r1_c2
+      - uav_r2_c2
+      - uav_r3_c2
+      - uav_r4_c2
+      - uav_r4_c1
+      - uav_r4_c0
+      - uav_r3_c0
+      - uav_r2_c0
+
+  bev_margin_m: 35.0
+  bev_camera:
+    height_m: 165.0
+    image_size_x: 1800
+    image_size_y: 1500
+    fov: 105.0
+  save_overhead_rgb: false
+
+grid:
+  size: 5
+  spacing_m: 15.0
+  height_m: 40.0
+  keyframe_interval_s: 1.0
+
+sensors:
+  vehicle_lidar:
+    mount: {x: 0.0, y: 0.0, z: 1.8, pitch: 0.0, yaw: 0.0, roll: 0.0}
+    channels: 80
+    range: 80.0
+    points_per_second: 400000
+    rotation_frequency: 10.0
+    upper_fov: 15.0
+    lower_fov: -25.0
+  rsu_lidar:
+    channels: 64
+    range: 100.0
+    points_per_second: 300000
+    rotation_frequency: 10.0
+    upper_fov: 10.0
+    lower_fov: -40.0
+  uav_lidar:
+    channels: 64
+    range: 80.0
+    points_per_second: 200000
+    rotation_frequency: 10.0
+    upper_fov: -5.0
+    lower_fov: -90.0
+
+scoring:
+  roi_mode: ego_moving
+  ego_roi:
+    min: [-140.8, -40.0]
+    max: [140.8, 40.0]
+  regional_roi:
+    center_offset_forward_m: 0.0
+    center_offset_right_m: 0.0
+    forward_m: [-110.0, 110.0]
+    right_m: [-60.0, 60.0]
+  base_sensors: [ego_lidar, cav2_lidar, rsu_lidar]
+  ignore_roles: [regional_ego, regional_car3]
+  threshold_points: {car: 8, pedestrian: 3, two_wheeler: 5}
+  class_weights: {car: 1.0, pedestrian: 2.0, two_wheeler: 1.5}
+  quality_tau_points: {car: 40.0, pedestrian: 12.0, two_wheeler: 20.0}
+  box_margin_m: 0.15
+  gain_weight: 0.5
+
+oracle:
+  uav_speed_mps: 15.0
+  movement_penalty_per_m: 0.01
+  recovery_quality_tiebreak: 0.0001

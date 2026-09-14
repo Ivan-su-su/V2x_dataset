@@ -1,0 +1,5 @@
+numpy>=1.23,<2.0
+PyYAML>=6.0
+matplotlib>=3.6
+pytest>=7.0
+

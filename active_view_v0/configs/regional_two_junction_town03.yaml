@@ -1,0 +1,97 @@
+# v0.7：保持30秒有效车流，并让感知缺口从J2前方逐渐迁移到后方。
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 30.0
+  map: Town03
+  fixed_delta_seconds: 0.1
+  traffic_manager_port: 8000
+  seed: 42
+
+output:
+  root: /mnt/disk_4/suyi/active_airv2x/datasets/active_view_v0
+  run_name: regional_two_junction_v07_eval_001
+
+regional:
+  # null 时自动选择道路真实相连的路口对；先用 --list-corridors 查看候选。
+  junction_1_id: null
+  junction_2_id: null
+  corridor_rank: 0
+  min_junction_separation_m: 30.0
+  max_junction_separation_m: 120.0
+
+  # 先让Traffic Manager稳定，再在0/10/20/30秒保存全局俯视图。
+  warmup_s: 5.0
+  duration_s: 30.0
+  snapshot_times_s: [0.0, 10.0, 20.0, 30.0]
+  background_vehicle_count: 25
+  background_spawn_radius_m: 140.0
+  route_exit_distance_m: 50.0
+  # 原路线在J2后很快结束，TrafficManager会随机转弯；显式延长并降低Ego速度。
+  ego_route_tail_m: 200.0
+  ego_speed_difference_pct: 35.0
+  car1_start_before_junction_m: 55.0
+  car3_start_before_junction_m: 30.0
+
+  # 所有补充车辆在t=0就沿合法车道存在，不在20/30秒临时生成。
+  # 所有车辆在t=0前已经生成并沿合法车道行驶。early两车维持0-14秒的
+  # J2前方补盲；late五车从Ego后方同车道按20m间距连续驶来，目标是在
+  # 16-30秒逐渐进入J2前方，而不是在后半程凭空生成。
+  support_vehicles:
+    - {role: regional_east_front, route: j2_cross, start_offset_m: 14.0, speed_difference_pct: 15.0}
+    - {role: regional_east_rear, route: j2_cross, start_offset_m: 48.0, speed_difference_pct: 25.0}
+    - {role: regional_late_1, route: corridor_behind_ego, start_offset_m: 65.0, speed_difference_pct: -5.0}
+    - {role: regional_late_2, route: corridor_behind_ego, start_offset_m: 85.0, speed_difference_pct: -3.0}
+    - {role: regional_late_3, route: corridor_behind_ego, start_offset_m: 105.0, speed_difference_pct: 0.0}
+    - {role: regional_late_4, route: corridor_behind_ego, start_offset_m: 125.0, speed_difference_pct: 3.0}
+    - {role: regional_late_5, route: corridor_behind_ego, start_offset_m: 145.0, speed_difference_pct: 5.0}
+
+  # 自动报告的场景验收门槛。它们只检查episode是否有资格评测主动移动。
+  validation:
+    early_end_s: 14.0
+    late_start_s: 16.0
+    minimum_late_targets: 6
+    minimum_rescue_frames_per_phase: 2
+    minimum_directional_row_shift: 2
+
+  # J1路侧RSU：相对走廊方向，right为负表示图中道路“上方”。
+  rsu:
+    offset_forward_m: 0.0
+    offset_right_m: -18.0
+    height_m: 7.0
+
+  # 标注BEV覆盖两个路口；RGB相机只用于场景验收，不进入数据集。
+  bev_margin_m: 42.0
+  bev_camera:
+    height_m: 120.0
+    image_size_x: 1600
+    image_size_y: 1600
+    fov: 90.0
+  # 正式采集时额外保存一张全局俯视RGB，仅用于核查场景，不参与评分。
+  save_overhead_rgb: true
+
+# UAV被限制在J2附近，而不是跟随ego离开路口。
+grid:
+  size: 5
+  spacing_m: 10.0
+  height_m: 25.0
+  keyframe_interval_s: 2.0
+
+# 每个关键帧都在“当前Ego坐标系”内筛选目标；UAV网格本身仍固定在J2。
+# x为Ego前后方向，y为左右方向，对齐AirV2X公开的[-140.8,140.8]×[-40,40]。
+scoring:
+  ego_roi:
+    min: [-140.8, -40.0]
+    max: [140.8, 40.0]
+  base_sensors: [ego_lidar, car1_lidar, car3_lidar, rsu_lidar]
+  ignore_roles: [regional_ego, regional_car1, regional_car3]
+  threshold_points: {car: 8, pedestrian: 3, two_wheeler: 5}
+  class_weights: {car: 1.0, pedestrian: 2.0, two_wheeler: 1.5}
+  quality_tau_points: {car: 40.0, pedestrian: 12.0, two_wheeler: 20.0}
+  box_margin_m: 0.15
+  gain_weight: 0.5
+
+oracle:
+  # 2秒一个关键帧，因此最多跨一个10米网格边，不能对角瞬移。
+  uav_speed_mps: 5.0
+  movement_penalty_per_m: 0.002

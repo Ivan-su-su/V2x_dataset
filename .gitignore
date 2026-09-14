@@ -1,0 +1,21 @@
+# 嵌套 git 仓库(独立管理,不纳入本仓库)
+scenario_runner/
+Airv2x_gs/
+
+# 压缩包
+*.tar.gz
+*.zip
+
+# Python 产物
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store

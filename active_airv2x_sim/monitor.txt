@@ -1,0 +1,5 @@
+ssh -N \
+  -L 8080:127.0.0.1:8080 \
+  qsinghua_239 在mac上启动
+  
+python /mnt/disk_4/suyi/active_airv2x/code/active_airv2x_sim/live_viewer.py 在服务器上启动
