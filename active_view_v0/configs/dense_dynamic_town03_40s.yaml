@@ -62,7 +62,7 @@ regional:
   # Ego naturally queue at J2 without any phase switch.
   fixed_signal_plan:
     enabled: true
-    axis_tolerance_deg: 35.0
+    route_heading_tolerance_deg: 25.0
     reapply_each_tick: true
 
   support_vehicles:
