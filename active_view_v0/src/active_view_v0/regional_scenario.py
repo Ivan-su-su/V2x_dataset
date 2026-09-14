@@ -75,6 +75,7 @@ class RegionalIntersectionScenario:
         self.routes: dict[str, VehicleRoute] = {}
         self._rng = random.Random(int(cfg["carla"]["seed"]))
         self._fixed_signal_states: dict[int, dict[str, Any]] = {}
+        self._traffic_lights_frozen = False
 
     def setup(self) -> None:
         self._destroy_stale_owned_actors()
@@ -410,6 +411,15 @@ class RegionalIntersectionScenario:
         self.apply_fixed_signal_plan()
 
     def apply_fixed_signal_plan(self) -> None:
+        if self._fixed_signal_states and not self._traffic_lights_frozen:
+            # CARLA freezes every traffic light in the scene through any
+            # TrafficLight actor.  This is intentional for this controlled
+            # clip: otherwise the Unreal signal controller can advance a
+            # manually assigned state to Yellow during the very next tick.
+            anchor = next(iter(self._fixed_signal_states.values()))["actor"]
+            if anchor.is_alive:
+                anchor.freeze(True)
+                self._traffic_lights_frozen = True
         for record in self._fixed_signal_states.values():
             light = record["actor"]
             if light.is_alive:
@@ -464,6 +474,14 @@ class RegionalIntersectionScenario:
     def release_fixed_signal_plan(self) -> None:
         if not self._fixed_signal_states:
             return
+        if self._traffic_lights_frozen:
+            try:
+                anchor = next(iter(self._fixed_signal_states.values()))["actor"]
+                if anchor.is_alive:
+                    anchor.freeze(False)
+            except RuntimeError:
+                pass
+            self._traffic_lights_frozen = False
         try:
             self.world.reset_all_traffic_lights()
         except RuntimeError:
