@@ -122,12 +122,14 @@ class RegionalIntersectionScenario:
             float(regional.get("car3_route_tail_m", 100.0)),
         )
 
-        self._configure_fixed_signal_plan(
-            j1_axis_yaw=float(
-                self.corridor.corridor_waypoints[0].transform.rotation.yaw
-            ),
-            j2_axis_yaw=float(car3_route[0].transform.rotation.yaw),
-        )
+        signal_cfg = regional.get("fixed_signal_plan", {})
+        if bool(signal_cfg.get("enabled", False)):
+            self._configure_fixed_signal_plan(
+                j1_axis_yaw=float(
+                    self.corridor.corridor_waypoints[0].transform.rotation.yaw
+                ),
+                j2_axis_yaw=float(car3_route[0].transform.rotation.yaw),
+            )
 
         self._spawn_cav(
             "regional_ego",
