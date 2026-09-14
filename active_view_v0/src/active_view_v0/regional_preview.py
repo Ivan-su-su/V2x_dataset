@@ -76,7 +76,10 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         dt = float(carla_cfg["fixed_delta_seconds"])
         warmup_s = float(regional["warmup_s"])
         for _ in range(int(round(warmup_s / dt))):
+            scenario.apply_fixed_signal_plan()
             world.tick()
+            scenario.apply_fixed_signal_plan()
+            scenario.assert_fixed_signal_plan()
 
         snapshot_times = sorted(float(value) for value in regional["snapshot_times_s"])
         total_duration = max(float(regional["duration_s"]), snapshot_times[-1] if snapshot_times else 0.0)
@@ -85,7 +88,10 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         rgb_paths: list[Path] = []
         annotated_rgb_paths: list[Path] = []
         for tick_index in range(int(round(total_duration / dt)) + 1):
+            scenario.apply_fixed_signal_plan()
             frame_id = int(world.tick())
+            scenario.apply_fixed_signal_plan()
+            scenario.assert_fixed_signal_plan()
             if tick_index not in snapshot_ticks:
                 continue
             elapsed_s = snapshot_ticks[tick_index]
@@ -116,6 +122,7 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
                     "rgb_path": rgb_path.name,
                     "annotated_rgb_path": annotated_rgb_path.name,
                     "tracked_actor_visible_in_rgb": visibility,
+                    "fixed_signal_states": scenario.fixed_signal_states(),
                 }
             )
             print(f"Snapshot t={elapsed_s:5.1f}s frame={frame_id} actors={len(snapshots[-1]['actors'])}")
@@ -184,6 +191,7 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
             "evaluation_roi": evaluation_roi,
             "sensor_ranges": sensor_ranges,
             "routes": scenario_meta["routes"],
+            "fixed_signal_plan": scenario_meta["fixed_signal_plan"],
             "snapshots": snapshots,
             "motion_summary": motion_summary,
             "outputs": {
@@ -201,6 +209,8 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         print(f"CARLA RGB global BEV: {rgb_bev}")
         return output_dir
     finally:
+        if scenario is not None:
+            scenario.release_fixed_signal_plan()
         actor_ids: list[int] = []
         if camera_rig is not None:
             actor_ids.extend(int(stream.actor.id) for stream in camera_rig.streams.values())
