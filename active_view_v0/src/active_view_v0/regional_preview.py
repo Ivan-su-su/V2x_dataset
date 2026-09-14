@@ -209,6 +209,8 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         print(f"CARLA RGB global BEV: {rgb_bev}")
         return output_dir
     finally:
+        if camera_rig is not None:
+            camera_rig.stop()
         if scenario is not None:
             scenario.release_fixed_signal_plan()
         actor_ids: list[int] = []
