@@ -115,9 +115,12 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
     assert regional["ego_start_advance_m"] == 0.0
     assert regional["fixed_signal_plan"] == {
         "enabled": True,
+        "j2_switch_time_s": 20.0,
         "route_heading_tolerance_deg": 25.0,
         "reapply_each_tick": True,
     }
+    assert regional["ego_route_commands"][:2] == ["Straight", "Straight"]
+    assert set(regional["ego_route_commands"]) == {"Straight"}
     assert regional["save_overhead_rgb"] is True
     assert regional["annotated_bev"] == {
         "enabled": True,
@@ -161,6 +164,7 @@ def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
 
     first = FakeLight(1)
     second = FakeLight(2)
+    third = FakeLight(3)
     world = SimpleNamespace(reset_calls=0)
     world.reset_all_traffic_lights = lambda: setattr(
         world, "reset_calls", world.reset_calls + 1
@@ -168,17 +172,41 @@ def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
     scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
     scenario.world = world
     scenario._traffic_lights_frozen = False
+    scenario._active_signal_phase = "j2_cross_green"
+    scenario._signal_switch_time_s = 20.0
     scenario._fixed_signal_states = {
-        1: {"actor": first, "expected": "green"},
-        2: {"actor": second, "expected": "red"},
+        1: {
+            "actor": first,
+            "junction": "J1_ego_green",
+            "expected": "green",
+            "early_expected": "green",
+            "late_expected": "green",
+        },
+        2: {
+            "actor": second,
+            "junction": "J2_cross_green",
+            "expected": "green",
+            "early_expected": "green",
+            "late_expected": "red",
+        },
+        3: {
+            "actor": third,
+            "junction": "J2_cross_green",
+            "expected": "red",
+            "early_expected": "red",
+            "late_expected": "green",
+        },
     }
 
-    scenario.apply_fixed_signal_plan()
-    scenario.apply_fixed_signal_plan()
+    scenario.apply_fixed_signal_plan(0.0)
+    scenario.apply_fixed_signal_plan(19.9)
+    scenario.apply_fixed_signal_plan(20.0)
 
     assert first.freeze_calls == [True]
-    assert first.state_calls == ["green", "green"]
-    assert second.state_calls == ["red", "red"]
+    assert first.state_calls == ["green", "green", "green"]
+    assert second.state_calls == ["green", "green", "red"]
+    assert third.state_calls == ["red", "red", "green"]
+    assert scenario._active_signal_phase == "j2_corridor_green"
 
     scenario.release_fixed_signal_plan()
     assert first.freeze_calls == [True, False]
@@ -326,7 +354,9 @@ def test_disabled_j1_cav_does_not_read_missing_car1_distance(monkeypatch) -> Non
     )
     spawned = []
     scenario._destroy_stale_owned_actors = lambda: None
-    scenario._spawn_cav = lambda role, route, speed_difference: spawned.append(role)
+    scenario._spawn_cav = (
+        lambda role, route, speed_difference, **kwargs: spawned.append(role)
+    )
     scenario._spawn_support_traffic = lambda route, yaw: None
     scenario._spawn_background = lambda count: None
     monkeypatch.setattr(scenario_module, "_route_yaw", lambda route: 0.0)
