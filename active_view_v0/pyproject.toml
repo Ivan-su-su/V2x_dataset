@@ -11,6 +11,8 @@ dependencies = [
   "numpy>=1.23,<2.0",
   "PyYAML>=6.0",
   "matplotlib>=3.6",
+  "imageio>=2.31",
+  "imageio-ffmpeg>=0.4.9",
 ]
 
 [project.optional-dependencies]

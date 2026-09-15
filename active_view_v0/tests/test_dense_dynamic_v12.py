@@ -5,11 +5,16 @@ from types import SimpleNamespace
 import numpy as np
 
 from active_view_v0.config import load_config
-from active_view_v0.regional_collector import _collection_schedule
+from active_view_v0.regional_collector import (
+    _collection_schedule,
+    _encode_annotated_video,
+)
 from active_view_v0.regional_preview import _build_motion_summary
 from active_view_v0.regional_scenario import (
     RegionalIntersectionScenario,
+    _axis_heading_error_deg,
     _heading_is_opposite,
+    _light_controls_route,
     _route_suffix_after_distance,
 )
 from active_view_v0.uav_modes import (
@@ -89,7 +94,7 @@ def test_dense_20s_config_adds_deterministic_oncoming_flow() -> None:
     cfg = load_config(path)
     assert _collection_schedule(cfg) == (200, 1, 200)
     assert cfg["regional"]["ego_speed_difference_pct"] == 0.0
-    assert cfg["regional"]["ego_start_advance_m"] == 20.0
+    assert cfg["regional"]["ego_start_advance_m"] == 40.0
     support = cfg["regional"]["support_vehicles"]
     assert sum(item["route"] == "corridor_oncoming" for item in support) == 5
     assert all(
@@ -99,6 +104,221 @@ def test_dense_20s_config_adds_deterministic_oncoming_flow() -> None:
     )
     assert cfg["regional"]["density_validation"]["minimum_ego_displacement_m"] == 40.0
 
+
+
+def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
+    path = Path(__file__).parents[1] / "configs" / "dense_dynamic_town03_40s.yaml"
+    cfg = load_config(path)
+    assert _collection_schedule(cfg) == (400, 1, 400)
+    regional = cfg["regional"]
+    assert regional["duration_s"] == 40.0
+    assert regional["ego_start_advance_m"] == 0.0
+    assert regional["fixed_signal_plan"] == {
+        "enabled": True,
+        "j2_switch_time_s": 20.0,
+        "route_heading_tolerance_deg": 25.0,
+        "reapply_each_tick": True,
+    }
+    assert regional["ego_route_commands"][:2] == ["Straight", "Straight"]
+    assert set(regional["ego_route_commands"]) == {"Straight"}
+    assert regional["save_overhead_rgb"] is True
+    assert regional["annotated_bev"] == {
+        "enabled": True,
+        "make_video": True,
+        "video_fps": 10.0,
+        "video_filename": "global_bev_rgb_annotated.mp4",
+        "video_codec": "libx264",
+        "video_quality": 8,
+    }
+    support = regional["support_vehicles"]
+    assert sum(item["route"] == "j2_cross" for item in support) >= 5
+    assert sum(item["route"] == "j2_cross_reverse" for item in support) >= 5
+    north = [
+        item
+        for item in support
+        if item["role"].startswith("regional_north_oncoming_")
+    ]
+    assert len(north) == 4
+    assert [item["start_offset_m"] for item in north] == [125.0, 150.0, 175.0, 200.0]
+    assert regional["density_validation"]["minimum_j1_cross_progress_m"] == 8.0
+    assert regional["density_validation"]["maximum_ego_j2_distance_m"] == 25.0
+    assert cfg["scoring"]["ego_roi"] == {
+        "min": [-100.0, -60.0],
+        "max": [100.0, 60.0],
+    }
+
+
+def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
+    class FakeLight:
+        def __init__(self, actor_id: int):
+            self.id = actor_id
+            self.is_alive = True
+            self.freeze_calls = []
+            self.state_calls = []
+
+        def freeze(self, value: bool) -> None:
+            self.freeze_calls.append(value)
+
+        def set_state(self, value) -> None:
+            self.state_calls.append(value)
+
+    first = FakeLight(1)
+    second = FakeLight(2)
+    third = FakeLight(3)
+    world = SimpleNamespace(reset_calls=0)
+    world.reset_all_traffic_lights = lambda: setattr(
+        world, "reset_calls", world.reset_calls + 1
+    )
+    scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
+    scenario.world = world
+    scenario._traffic_lights_frozen = False
+    scenario._active_signal_phase = "j2_cross_green"
+    scenario._signal_switch_time_s = 20.0
+    scenario._fixed_signal_states = {
+        1: {
+            "actor": first,
+            "junction": "J1_ego_green",
+            "expected": "green",
+            "early_expected": "green",
+            "late_expected": "green",
+        },
+        2: {
+            "actor": second,
+            "junction": "J2_cross_green",
+            "expected": "green",
+            "early_expected": "green",
+            "late_expected": "red",
+        },
+        3: {
+            "actor": third,
+            "junction": "J2_cross_green",
+            "expected": "red",
+            "early_expected": "red",
+            "late_expected": "green",
+        },
+    }
+
+    scenario.apply_fixed_signal_plan(0.0)
+    scenario.apply_fixed_signal_plan(19.9)
+    scenario.apply_fixed_signal_plan(20.0)
+
+    assert first.freeze_calls == [True]
+    assert first.state_calls == ["green", "green", "green"]
+    assert second.state_calls == ["green", "green", "red"]
+    assert third.state_calls == ["red", "red", "green"]
+    assert scenario._active_signal_phase == "j2_corridor_green"
+
+    scenario.release_fixed_signal_plan()
+    assert first.freeze_calls == [True, False]
+    assert world.reset_calls == 1
+    assert scenario._fixed_signal_states == {}
+
+
+def test_annotated_video_encoder_writes_mp4(tmp_path: Path) -> None:
+    import imageio.v2 as imageio
+
+    frame_paths = []
+    for index, value in enumerate((32, 224)):
+        path = tmp_path / f"{index:06d}.png"
+        image = np.full((32, 48, 4), value, dtype=np.uint8)
+        image[:, :, 3] = 255
+        imageio.imwrite(path, image)
+        frame_paths.append(path)
+
+    output = _encode_annotated_video(
+        frame_paths,
+        tmp_path / "annotated.mp4",
+        fps=10.0,
+        codec="libx264",
+        quality=8,
+    )
+
+    assert output.exists()
+    assert output.stat().st_size > 0
+
+
+def test_signal_matching_uses_directed_route_lanes() -> None:
+    class Waypoint:
+        def __init__(self, x: float, y: float, yaw: float, road_id: int, lane_id: int):
+            self.road_id = road_id
+            self.lane_id = lane_id
+            self.transform = SimpleNamespace(
+                location=SimpleNamespace(
+                    x=x,
+                    y=y,
+                    z=0.0,
+                    distance=lambda other: float(
+                        np.hypot(x - other.x, y - other.y)
+                    ),
+                ),
+                rotation=SimpleNamespace(yaw=yaw),
+            )
+
+    route = [
+        Waypoint(0.0, 0.0, 90.0, 12, -1),
+        Waypoint(0.0, 10.0, 90.0, 12, -1),
+    ]
+    exact_stop = [Waypoint(0.0, 2.0, 90.0, 12, -1)]
+    opposite_stop = [Waypoint(0.0, 2.0, -90.0, 99, 1)]
+    section_boundary_stop = [Waypoint(0.5, 2.0, 90.0, 99, -1)]
+
+    assert _light_controls_route(exact_stop, route)
+    assert _light_controls_route(section_boundary_stop, route)
+    assert not _light_controls_route(opposite_stop, route)
+
+
+def test_traffic_light_axis_is_bidirectional() -> None:
+    assert _axis_heading_error_deg(0.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(180.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(-180.0, 0.0) == 0.0
+    assert _axis_heading_error_deg(90.0, 0.0) == 90.0
+    assert _axis_heading_error_deg(-90.0, 0.0) == 90.0
+
+
+def test_reverse_cross_route_selects_legal_opposite_lane(monkeypatch) -> None:
+    import active_view_v0.corridors as corridors_module
+
+    class DirectedWaypoint:
+        def __init__(self, x: float, yaw: float):
+            self.transform = SimpleNamespace(
+                location=_RouteLocation(x),
+                rotation=SimpleNamespace(yaw=float(yaw)),
+            )
+
+        def previous(self, distance: float):
+            return [self]
+
+        def next(self, distance: float):
+            return [self]
+
+    forward_entry = DirectedWaypoint(0.0, 90.0)
+    forward_exit = DirectedWaypoint(1.0, 90.0)
+    reverse_entry = DirectedWaypoint(10.0, -90.0)
+    reverse_exit = DirectedWaypoint(11.0, -90.0)
+    junction = SimpleNamespace(
+        id=7,
+        get_waypoints=lambda lane_type: [
+            (forward_entry, forward_exit),
+            (reverse_entry, reverse_exit),
+        ],
+    )
+    monkeypatch.setattr(corridors_module, "_driving_lane_type", lambda: object())
+
+    forward = corridors_module.cross_route(junction, 0.0, 5.0, 5.0)
+    reverse = corridors_module.cross_route(
+        junction,
+        0.0,
+        5.0,
+        5.0,
+        reverse=True,
+    )
+
+    assert forward[0].transform.rotation.yaw == 90.0
+    assert reverse[0].transform.rotation.yaw == -90.0
+    assert _heading_is_opposite(
+        forward[0].transform.rotation.yaw,
+        reverse[0].transform.rotation.yaw,
+    )
 
 def test_opposite_heading_gate() -> None:
     assert _heading_is_opposite(0.0, 180.0)
@@ -134,7 +354,9 @@ def test_disabled_j1_cav_does_not_read_missing_car1_distance(monkeypatch) -> Non
     )
     spawned = []
     scenario._destroy_stale_owned_actors = lambda: None
-    scenario._spawn_cav = lambda role, route, speed_difference: spawned.append(role)
+    scenario._spawn_cav = (
+        lambda role, route, speed_difference, **kwargs: spawned.append(role)
+    )
     scenario._spawn_support_traffic = lambda route, yaw: None
     scenario._spawn_background = lambda count: None
     monkeypatch.setattr(scenario_module, "_route_yaw", lambda route: 0.0)

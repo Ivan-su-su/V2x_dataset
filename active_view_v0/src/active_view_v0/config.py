@@ -170,6 +170,7 @@ def validate_config(cfg: dict[str, Any]) -> None:
         allowed_routes = {
             "j1_cross",
             "j2_cross",
+            "j2_cross_reverse",
             "corridor_forward",
             "corridor_behind_ego",
             "corridor_oncoming",
