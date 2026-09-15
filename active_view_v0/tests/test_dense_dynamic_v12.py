@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from active_view_v0.config import load_config
 from active_view_v0.regional_collector import (
@@ -14,6 +15,7 @@ from active_view_v0.regional_scenario import (
     RegionalIntersectionScenario,
     _axis_heading_error_deg,
     _heading_is_opposite,
+    _j1_opposing_green_routes,
     _light_controls_route,
     _route_suffix_after_distance,
 )
@@ -115,6 +117,7 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
     assert regional["ego_start_advance_m"] == 0.0
     assert regional["fixed_signal_plan"] == {
         "enabled": True,
+        "j1_bidirectional_green": True,
         "j2_switch_time_s": 20.0,
         "route_heading_tolerance_deg": 25.0,
         "reapply_each_tick": True,
@@ -265,6 +268,102 @@ def test_signal_matching_uses_directed_route_lanes() -> None:
     assert _light_controls_route(exact_stop, route)
     assert _light_controls_route(section_boundary_stop, route)
     assert not _light_controls_route(opposite_stop, route)
+
+
+def test_j1_opposing_routes_use_local_ego_entry_not_global_axis(monkeypatch) -> None:
+    import sys
+    import active_view_v0.regional_scenario as scenario_module
+
+    monkeypatch.setitem(sys.modules, "carla", SimpleNamespace(
+        LaneType=SimpleNamespace(Driving="driving")
+    ))
+    monkeypatch.setattr(scenario_module, "waypoint_before", lambda wp, distance: wp)
+    monkeypatch.setattr(scenario_module, "waypoint_after", lambda wp, distance: wp)
+
+    def wp(road_id, yaw):
+        return SimpleNamespace(
+            road_id=road_id, lane_id=-1,
+            transform=SimpleNamespace(
+                rotation=SimpleNamespace(yaw=yaw),
+                location=SimpleNamespace(distance=lambda other: 1000.0),
+            ),
+        )
+
+    ego_pair = (wp(1, 90.0), wp(2, 90.0))
+    opposing_pair = (wp(3, -90.0), wp(4, -90.0))
+    cross_pair = (wp(5, 0.0), wp(6, 0.0))
+    turning_pair = (wp(7, -90.0), wp(8, 0.0))
+    pairs = [ego_pair, opposing_pair, cross_pair, turning_pair]
+    junction = SimpleNamespace(get_waypoints=lambda lane_type: pairs)
+    ego_route = [ego_pair[0], ego_pair[1], wp(9, 0.0)]
+    added = _j1_opposing_green_routes(junction, ego_route)
+    assert added == [[opposing_pair[0], *opposing_pair, opposing_pair[1]]]
+    assert _light_controls_route([ego_pair[0]], ego_route)
+    assert _light_controls_route([opposing_pair[0]], added[0])
+    assert not _light_controls_route([cross_pair[0]], added[0])
+    assert not _light_controls_route([turning_pair[0]], added[0])
+
+    with pytest.raises(RuntimeError, match="no straight entry matches"):
+        _j1_opposing_green_routes(junction, [wp(99, 0.0)])
+    pairs.remove(opposing_pair)
+    with pytest.raises(RuntimeError, match="no legal opposing straight entry"):
+        _j1_opposing_green_routes(junction, ego_route)
+
+
+def test_route_only_j1_fix_keeps_baseline_ego_light_and_j2_schedule(monkeypatch) -> None:
+    import sys
+
+    monkeypatch.setitem(sys.modules, "carla", SimpleNamespace(
+        TrafficLightState=SimpleNamespace(Green="green", Red="red")
+    ))
+
+    def stop(road_id):
+        return SimpleNamespace(
+            road_id=road_id, lane_id=-1,
+            transform=SimpleNamespace(
+                # Deliberately uninformative stop yaw: selection must use
+                # concrete directed route lane IDs, not stop-axis inference.
+                rotation=SimpleNamespace(yaw=0.0),
+                location=SimpleNamespace(distance=lambda other: 1000.0),
+            ),
+        )
+
+    def light(actor_id):
+        actor = SimpleNamespace(id=actor_id, is_alive=True, state=None)
+        actor.get_stop_waypoints = lambda: [stop(actor_id)]
+        actor.freeze = lambda value: None
+        actor.set_state = lambda value: setattr(actor, "state", value)
+        return actor
+
+    j1 = [light(index) for index in range(1, 5)]
+    j2 = [light(index) for index in range(5, 9)]
+    scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
+    scenario.cfg = {"regional": {"fixed_signal_plan": {"enabled": True}}}
+    scenario.corridor = SimpleNamespace(
+        first=SimpleNamespace(junction_id=1), second=SimpleNamespace(junction_id=2)
+    )
+    scenario.world = SimpleNamespace(
+        get_traffic_lights_in_junction=lambda junction_id: j1 if junction_id == 1 else j2
+    )
+    scenario._fixed_signal_states = {}
+    scenario._traffic_lights_frozen = False
+    scenario._active_signal_phase = "j2_cross_green"
+    scenario._signal_switch_time_s = 20.0
+    scenario._configure_fixed_signal_plan(
+        j1_green_routes=[[stop(1)]], j2_green_routes=[[stop(5)], [stop(6)]]
+    )
+    assert [actor.state for actor in j1] == ["green", "red", "red", "red"]
+    scenario._configure_fixed_signal_plan(
+        j1_green_routes=[[stop(1)], [stop(2)]],
+        j2_green_routes=[[stop(5)], [stop(6)]],
+    )
+    for elapsed_s in [0.0, 19.9, 20.0, 39.9]:
+        scenario.apply_fixed_signal_plan(elapsed_s)
+        assert [actor.state for actor in j1] == ["green", "green", "red", "red"]
+        assert [actor.state for actor in j2] == (
+            ["green", "green", "red", "red"] if elapsed_s < 20.0
+            else ["red", "red", "green", "green"]
+        )
 
 
 def test_traffic_light_axis_is_bidirectional() -> None:
