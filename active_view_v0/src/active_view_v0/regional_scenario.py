@@ -380,11 +380,11 @@ class RegionalIntersectionScenario:
         j1_green_routes: list[list[Any]],
         j2_green_routes: list[list[Any]],
     ) -> None:
-        """Keep J1 open for Ego and switch J2 from transverse to corridor.
+        """Keep both corridor directions green at J1; switch J2 at 20 s.
 
-        Each phase is bound to concrete CARLA road/lane IDs from the routes
-        used by TrafficManager. This avoids selecting a nearby pole group or
-        inferring the controlled lane from traffic-light actor rotation.
+        J1 selects both directions using the controlled stop-lane headings;
+        J2 remains bound to the concrete directed TrafficManager routes.
+        Neither selection uses the traffic-light pole's rotation.
         """
         regional_cfg = self.cfg["regional"]
         plan_cfg = regional_cfg.get("fixed_signal_plan", {})
@@ -395,6 +395,7 @@ class RegionalIntersectionScenario:
         import carla
 
         tolerance = float(plan_cfg.get("route_heading_tolerance_deg", 25.0))
+        j1_axis_yaw = _route_yaw(self.corridor.corridor_waypoints)
         groups: list[tuple[str, Any, list[list[Any]]]] = [
             ("J1_ego_green", self.corridor.first, j1_green_routes),
             ("J2_cross_green", self.corridor.second, j2_green_routes),
@@ -413,14 +414,26 @@ class RegionalIntersectionScenario:
             red_count = 0
             for light in lights:
                 stop_waypoints = list(light.get_stop_waypoints())
-                is_green = any(
-                    _light_controls_route(
-                        stop_waypoints,
-                        route,
-                        heading_tolerance_deg=tolerance,
+                if label == "J1_ego_green":
+                    # Use the controlled lane's heading, not the pole's
+                    # rotation.  Treat the corridor as an undirected axis so
+                    # both Ego's lane and the opposing lanes stay green.
+                    is_green = any(
+                        _axis_heading_error_deg(
+                            stop.transform.rotation.yaw, j1_axis_yaw
+                        ) <= tolerance
+                        for stop in stop_waypoints
                     )
-                    for route in green_routes
-                )
+                else:
+                    # J2 retains its existing route-bound phase selection.
+                    is_green = any(
+                        _light_controls_route(
+                            stop_waypoints,
+                            route,
+                            heading_tolerance_deg=tolerance,
+                        )
+                        for route in green_routes
+                    )
                 early_expected = (
                     carla.TrafficLightState.Green
                     if is_green
