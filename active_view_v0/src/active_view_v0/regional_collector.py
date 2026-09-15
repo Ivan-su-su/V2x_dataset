@@ -199,10 +199,10 @@ def collect_regional(
         dt = float(carla_cfg["fixed_delta_seconds"])
         warmup_ticks = int(round(float(regional["warmup_s"]) / dt))
         for _ in range(warmup_ticks):
-            scenario.apply_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(0.0)
             world.tick()
-            scenario.apply_fixed_signal_plan()
-            scenario.assert_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(0.0)
+            scenario.assert_fixed_signal_plan(0.0)
 
         duration = float(regional["duration_s"])
         total_loop_ticks, key_stride, expected_frames = _collection_schedule(cfg)
@@ -227,10 +227,10 @@ def collect_regional(
                     mode_record,
                     mode_sensor_names,
                 )
-            scenario.apply_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(elapsed_s)
             frame_id = int(world.tick())
-            scenario.apply_fixed_signal_plan()
-            scenario.assert_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(elapsed_s)
+            scenario.assert_fixed_signal_plan(elapsed_s)
             if tick_index % key_stride != 0:
                 continue
             measurements = rig.collect_frame(frame_id, timeout_s=30.0)
