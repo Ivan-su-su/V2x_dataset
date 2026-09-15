@@ -52,16 +52,19 @@ regional:
 
   # 0 means the road speed limit. The previous 45 meant 45% slower than it.
   ego_speed_difference_pct: 0.0
+  # Traffic Manager normally chooses random junction branches.  These
+  # commands force Ego to go straight through J1, J2 and any later junction.
+  ego_route_commands: [Straight, Straight, Straight, Straight, Straight, Straight]
   car3_start_before_junction_m: 90.0
   car3_speed_difference_pct: 5.0
   car3_route_tail_m: 190.0
   transient_coverage_radius_m: 70.0
 
-  # Fixed for the complete clip: J1 corridor axis is green; J2 transverse
-  # axis is green. Therefore Ego clears J1, while north-to-south vehicles and
-  # Ego naturally queue at J2 without any phase switch.
+  # J1 stays green along Ego's corridor for the whole clip.  At t=20 s, J2
+  # changes from transverse/horizontal green to corridor/vertical green.
   fixed_signal_plan:
     enabled: true
+    j2_switch_time_s: 20.0
     route_heading_tolerance_deg: 25.0
     reapply_each_tick: true
 
@@ -118,7 +121,8 @@ regional:
     - {role: regional_oncoming_5, route: corridor_oncoming, start_offset_m: 100.0, route_tail_m: 220.0, speed_difference_pct: 3.0, required: true}
 
     # Vehicles starting north of J2 travel toward J2 in the lane opposite Ego.
-    # J2's corridor axis remains red, so they arrive progressively and queue.
+    # J2's corridor axis is red before 20 s, so they arrive progressively and
+    # queue; after the phase switch they proceed south through the junction.
     - {role: regional_north_oncoming_1, route: corridor_oncoming, start_offset_m: 125.0, route_tail_m: 220.0, speed_difference_pct: 4.0}
     - {role: regional_north_oncoming_2, route: corridor_oncoming, start_offset_m: 150.0, route_tail_m: 220.0, speed_difference_pct: 7.0}
     - {role: regional_north_oncoming_3, route: corridor_oncoming, start_offset_m: 175.0, route_tail_m: 220.0, speed_difference_pct: 2.0}
