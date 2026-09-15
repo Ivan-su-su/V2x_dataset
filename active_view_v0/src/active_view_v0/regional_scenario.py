@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 
 from .corridors import ConnectedJunctions, cross_route, extend_route_straight, route_locations
-from .junctions import waypoint_before
+from .junctions import waypoint_after, waypoint_before
 
 
 @dataclass
@@ -140,8 +140,17 @@ class RegionalIntersectionScenario:
                 float(regional["route_exit_distance_m"]),
                 reverse=True,
             )
+            j1_green_routes = [ego_route]
+            if bool(signal_cfg.get("j1_bidirectional_green", False)):
+                j1_green_routes.extend(
+                    _j1_opposing_green_routes(
+                        self.corridor.first.junction,
+                        ego_route,
+                        float(signal_cfg.get("route_heading_tolerance_deg", 25.0)),
+                    )
+                )
             self._configure_fixed_signal_plan(
-                j1_green_routes=[ego_route],
+                j1_green_routes=j1_green_routes,
                 j2_green_routes=[car3_route, j2_reverse_green_route],
             )
 
@@ -666,6 +675,56 @@ class RegionalIntersectionScenario:
                 except Exception:
                     pass
 
+
+
+def _j1_opposing_green_routes(
+    junction: Any, ego_route: list[Any], tolerance_deg: float = 25.0
+) -> list[list[Any]]:
+    """Add legal opposite straight lanes, without changing signal selection.
+
+    Anchor the axis to the actual J1 entry in Ego's route. Do not infer it
+    from the long corridor chord or from traffic-light stop-waypoint yaw.
+    An uncertain mapping is an error, not permission to open other approaches.
+    """
+    import carla
+
+    straight_pairs = [
+        (entry, exit_wp)
+        for entry, exit_wp in junction.get_waypoints(carla.LaneType.Driving)
+        if _directed_heading_error_deg(
+            entry.transform.rotation.yaw, exit_wp.transform.rotation.yaw
+        ) <= 35.0
+    ]
+    ego_pairs = [
+        pair for pair in straight_pairs
+        if _light_controls_route(
+            [pair[0]], ego_route, heading_tolerance_deg=tolerance_deg
+        )
+    ]
+    if not ego_pairs:
+        raise RuntimeError("J1 bidirectional mapping: no straight entry matches Ego's route")
+    entry_yaw = float(ego_pairs[0][0].transform.rotation.yaw)
+    if any(
+        _directed_heading_error_deg(pair[0].transform.rotation.yaw, entry_yaw)
+        > tolerance_deg for pair in ego_pairs
+    ):
+        raise RuntimeError("J1 bidirectional mapping: Ego route matches multiple approaches")
+    opposing_pairs = [
+        pair for pair in straight_pairs
+        if _directed_heading_error_deg(
+            pair[0].transform.rotation.yaw, entry_yaw + 180.0
+        ) <= tolerance_deg
+    ]
+    if not opposing_pairs:
+        raise RuntimeError("J1 bidirectional mapping: no legal opposing straight entry")
+    print(
+        "J1 opposing straight entry lanes="
+        f"{[(int(entry.road_id), int(entry.lane_id)) for entry, _ in opposing_pairs]}"
+    )
+    return [
+        [waypoint_before(entry, 20.0), entry, exit_wp, waypoint_after(exit_wp, 20.0)]
+        for entry, exit_wp in opposing_pairs
+    ]
 
 
 def _traffic_lights_in_junction(world: Any, junction_info: Any) -> list[Any]:
