@@ -382,7 +382,7 @@ class RegionalIntersectionScenario:
     ) -> None:
         """Keep both corridor directions green at J1; switch J2 at 20 s.
 
-        J1 selects both directions using the controlled stop-lane headings;
+        J1 preserves Ego's route-matched green lights and adds opposing lanes;
         J2 remains bound to the concrete directed TrafficManager routes.
         Neither selection uses the traffic-light pole's rotation.
         """
@@ -395,7 +395,6 @@ class RegionalIntersectionScenario:
         import carla
 
         tolerance = float(plan_cfg.get("route_heading_tolerance_deg", 25.0))
-        j1_axis_yaw = _route_yaw(self.corridor.corridor_waypoints)
         groups: list[tuple[str, Any, list[list[Any]]]] = [
             ("J1_ego_green", self.corridor.first, j1_green_routes),
             ("J2_cross_green", self.corridor.second, j2_green_routes),
@@ -410,30 +409,52 @@ class RegionalIntersectionScenario:
                     f"fixed-signal junction groups overlap at traffic lights {sorted(overlap)}"
                 )
             seen_ids.update(group_ids)
+            stops_by_id = {
+                int(light.id): list(light.get_stop_waypoints()) for light in lights
+            }
+            route_green_ids = {
+                int(light.id)
+                for light in lights
+                if any(
+                    _light_controls_route(
+                        stops_by_id[int(light.id)],
+                        route,
+                        heading_tolerance_deg=tolerance,
+                    )
+                    for route in green_routes
+                )
+            }
+            j1_reference_yaws = []
+            if label == "J1_ego_green":
+                # Keep the previously working route-based Ego selection.
+                # Learn the axis from those lights' controlled stop lanes,
+                # NEVER from the long corridor's endpoint-to-endpoint chord.
+                j1_reference_yaws = [
+                    float(stop.transform.rotation.yaw)
+                    for light_id in sorted(route_green_ids)
+                    for stop in stops_by_id[light_id]
+                ]
+                if not j1_reference_yaws:
+                    raise RuntimeError("J1 has no traffic light matching Ego's route")
+                print(
+                    f"J1 Ego route green={sorted(route_green_ids)}, "
+                    f"controlled_lane_yaws={j1_reference_yaws}"
+                )
             green_count = 0
             red_count = 0
             for light in lights:
-                stop_waypoints = list(light.get_stop_waypoints())
+                stop_waypoints = stops_by_id[int(light.id)]
                 if label == "J1_ego_green":
-                    # Use the controlled lane's heading, not the pole's
-                    # rotation.  Treat the corridor as an undirected axis so
-                    # both Ego's lane and the opposing lanes stay green.
-                    is_green = any(
+                    is_green = int(light.id) in route_green_ids or any(
                         _axis_heading_error_deg(
-                            stop.transform.rotation.yaw, j1_axis_yaw
+                            stop.transform.rotation.yaw, reference_yaw
                         ) <= tolerance
                         for stop in stop_waypoints
+                        for reference_yaw in j1_reference_yaws
                     )
                 else:
                     # J2 retains its existing route-bound phase selection.
-                    is_green = any(
-                        _light_controls_route(
-                            stop_waypoints,
-                            route,
-                            heading_tolerance_deg=tolerance,
-                        )
-                        for route in green_routes
-                    )
+                    is_green = int(light.id) in route_green_ids
                 early_expected = (
                     carla.TrafficLightState.Green
                     if is_green
