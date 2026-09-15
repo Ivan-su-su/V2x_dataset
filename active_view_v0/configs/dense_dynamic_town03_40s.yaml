@@ -47,7 +47,7 @@ regional:
   route_exit_distance_m: 150.0
   ego_route_tail_m: 300.0
   # Keep the original corridor start. During the 40 s clip Ego clears J1 and
-  # approaches the permanently-red corridor approach at J2.
+  # approaches J2, whose corridor approach turns green at t=20 s.
   ego_start_advance_m: 0.0
 
   # 0 means the road speed limit. The previous 45 meant 45% slower than it.
@@ -60,7 +60,8 @@ regional:
   car3_route_tail_m: 190.0
   transient_coverage_radius_m: 70.0
 
-  # J1 stays green along Ego's corridor for the whole clip.  At t=20 s, J2
+  # J1 stays green in BOTH corridor directions for the whole clip; its
+  # transverse approaches stay red. At t=20 s, J2
   # changes from transverse/horizontal green to corridor/vertical green.
   fixed_signal_plan:
     enabled: true
