@@ -76,10 +76,10 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         dt = float(carla_cfg["fixed_delta_seconds"])
         warmup_s = float(regional["warmup_s"])
         for _ in range(int(round(warmup_s / dt))):
-            scenario.apply_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(0.0)
             world.tick()
-            scenario.apply_fixed_signal_plan()
-            scenario.assert_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(0.0)
+            scenario.assert_fixed_signal_plan(0.0)
 
         snapshot_times = sorted(float(value) for value in regional["snapshot_times_s"])
         total_duration = max(float(regional["duration_s"]), snapshot_times[-1] if snapshot_times else 0.0)
@@ -88,10 +88,11 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         rgb_paths: list[Path] = []
         annotated_rgb_paths: list[Path] = []
         for tick_index in range(int(round(total_duration / dt)) + 1):
-            scenario.apply_fixed_signal_plan()
+            elapsed_s = tick_index * dt
+            scenario.apply_fixed_signal_plan(elapsed_s)
             frame_id = int(world.tick())
-            scenario.apply_fixed_signal_plan()
-            scenario.assert_fixed_signal_plan()
+            scenario.apply_fixed_signal_plan(elapsed_s)
+            scenario.assert_fixed_signal_plan(elapsed_s)
             if tick_index not in snapshot_ticks:
                 continue
             elapsed_s = snapshot_ticks[tick_index]
