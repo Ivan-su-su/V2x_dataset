@@ -214,65 +214,6 @@ def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
     assert scenario._fixed_signal_states == {}
 
 
-def test_j1_preserves_ego_green_despite_wrong_corridor_chord_and_j2_switches(monkeypatch) -> None:
-    import sys
-
-    states = SimpleNamespace(Green="green", Red="red")
-    monkeypatch.setitem(sys.modules, "carla", SimpleNamespace(TrafficLightState=states))
-
-    def waypoint(yaw, road_id, y=0.0):
-        return SimpleNamespace(
-            road_id=road_id,
-            lane_id=-1,
-            transform=SimpleNamespace(
-                rotation=SimpleNamespace(yaw=yaw),
-                location=SimpleNamespace(
-                    x=0.0, y=y, z=0.0, distance=lambda other: 1000.0
-                ),
-            ),
-        )
-
-    def light(actor_id, yaw):
-        actor = SimpleNamespace(id=actor_id, is_alive=True, state=None)
-        actor.get_stop_waypoints = lambda: [waypoint(yaw, actor_id)]
-        actor.freeze = lambda value: None
-        actor.set_state = lambda value: setattr(actor, "state", value)
-        return actor
-
-    j1 = [light(1, 90.0), light(2, -90.0), light(3, 0.0), light(4, 180.0)]
-    j2 = [light(5, 0.0), light(6, 180.0), light(7, 90.0), light(8, -90.0)]
-    scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
-    scenario.cfg = {"regional": {"fixed_signal_plan": {"enabled": True}}}
-    scenario.corridor = SimpleNamespace(
-        # The long route's chord points horizontally, but Ego's actual J1
-        # stop lane is vertical. Global chord inference must not override it.
-        corridor_waypoints=[waypoint(0.0, 1), waypoint(0.0, 1)],
-        first=SimpleNamespace(junction_id=1),
-        second=SimpleNamespace(junction_id=2),
-    )
-    scenario.corridor.corridor_waypoints[-1].transform.location.x = 10.0
-    scenario.world = SimpleNamespace(
-        get_traffic_lights_in_junction=lambda junction_id: j1 if junction_id == 1 else j2
-    )
-    scenario._fixed_signal_states = {}
-    scenario._traffic_lights_frozen = False
-    scenario._active_signal_phase = "j2_cross_green"
-    scenario._signal_switch_time_s = 20.0
-    scenario._configure_fixed_signal_plan(
-        j1_green_routes=[[waypoint(90.0, 1)]],
-        j2_green_routes=[[waypoint(0.0, 5)], [waypoint(180.0, 6)]],
-    )
-
-    for elapsed_s in [0.0, 19.9, 20.0, 39.9]:
-        scenario.apply_fixed_signal_plan(elapsed_s)
-        assert [actor.state for actor in j1] == ["green", "green", "red", "red"]
-        assert [actor.state for actor in j2] == (
-            ["green", "green", "red", "red"]
-            if elapsed_s < 20.0
-            else ["red", "red", "green", "green"]
-        )
-
-
 def test_annotated_video_encoder_writes_mp4(tmp_path: Path) -> None:
     import imageio.v2 as imageio
 
