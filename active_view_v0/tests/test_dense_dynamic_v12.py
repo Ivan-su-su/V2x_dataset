@@ -214,7 +214,7 @@ def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
     assert scenario._fixed_signal_states == {}
 
 
-def test_j1_both_corridor_directions_stay_green_and_j2_still_switches(monkeypatch) -> None:
+def test_j1_preserves_ego_green_despite_wrong_corridor_chord_and_j2_switches(monkeypatch) -> None:
     import sys
 
     states = SimpleNamespace(Green="green", Red="red")
@@ -244,10 +244,13 @@ def test_j1_both_corridor_directions_stay_green_and_j2_still_switches(monkeypatc
     scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
     scenario.cfg = {"regional": {"fixed_signal_plan": {"enabled": True}}}
     scenario.corridor = SimpleNamespace(
-        corridor_waypoints=[waypoint(90.0, 1), waypoint(90.0, 1, y=10.0)],
+        # The long route's chord points horizontally, but Ego's actual J1
+        # stop lane is vertical. Global chord inference must not override it.
+        corridor_waypoints=[waypoint(0.0, 1), waypoint(0.0, 1)],
         first=SimpleNamespace(junction_id=1),
         second=SimpleNamespace(junction_id=2),
     )
+    scenario.corridor.corridor_waypoints[-1].transform.location.x = 10.0
     scenario.world = SimpleNamespace(
         get_traffic_lights_in_junction=lambda junction_id: j1 if junction_id == 1 else j2
     )
