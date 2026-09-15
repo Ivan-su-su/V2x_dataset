@@ -76,6 +76,10 @@ class RegionalIntersectionScenario:
         self._rng = random.Random(int(cfg["carla"]["seed"]))
         self._fixed_signal_states: dict[int, dict[str, Any]] = {}
         self._traffic_lights_frozen = False
+        self._active_signal_phase = "j2_cross_green"
+        self._signal_switch_time_s = float(
+            cfg["regional"].get("fixed_signal_plan", {}).get("j2_switch_time_s", 20.0)
+        )
 
     def setup(self) -> None:
         self._destroy_stale_owned_actors()
@@ -141,10 +145,25 @@ class RegionalIntersectionScenario:
                 j2_green_routes=[car3_route, j2_reverse_green_route],
             )
 
+        ego_route_commands = [
+            str(command)
+            for command in regional.get(
+                "ego_route_commands",
+                [
+                    "Straight",
+                    "Straight",
+                    "Straight",
+                    "Straight",
+                    "Straight",
+                    "Straight",
+                ],
+            )
+        ]
         self._spawn_cav(
             "regional_ego",
             ego_route,
             speed_difference=float(regional.get("ego_speed_difference_pct", 35.0)),
+            route_commands=ego_route_commands,
         )
         if car1_enabled:
             assert car1_route is not None
@@ -285,6 +304,7 @@ class RegionalIntersectionScenario:
         speed_difference: float,
         required: bool = True,
         blueprint_patterns: list[str] | None = None,
+        route_commands: list[str] | None = None,
     ) -> None:
         import carla
 
@@ -330,10 +350,24 @@ class RegionalIntersectionScenario:
         self.tm.vehicle_percentage_speed_difference(actor, float(speed_difference))
         self.tm.distance_to_leading_vehicle(actor, 3.0)
         try:
-            self.tm.set_path(actor, path[1:])
+            if route_commands:
+                # Traffic Manager otherwise chooses a random branch whenever
+                # its local path reaches a junction.  Give Ego explicit
+                # decisions for J1, J2 and the junctions beyond this clip.
+                self.tm.set_route(actor, list(route_commands))
+            else:
+                self.tm.set_path(actor, path[1:])
         except (AttributeError, RuntimeError) as error:
-            print(f"WARNING: TrafficManager.set_path failed for {role}: {error}")
-            print("         Vehicle will continue with TrafficManager's default route.")
+            if route_commands:
+                print(f"WARNING: TrafficManager.set_route failed for {role}: {error}")
+                print("         Falling back to the imported waypoint path.")
+                try:
+                    self.tm.set_path(actor, path[1:])
+                except (AttributeError, RuntimeError) as path_error:
+                    print(f"WARNING: TrafficManager.set_path failed for {role}: {path_error}")
+            else:
+                print(f"WARNING: TrafficManager.set_path failed for {role}: {error}")
+                print("         Vehicle will continue with TrafficManager's default route.")
         self.routes[role] = VehicleRoute(
             role=role,
             actor=actor,
@@ -346,7 +380,7 @@ class RegionalIntersectionScenario:
         j1_green_routes: list[list[Any]],
         j2_green_routes: list[list[Any]],
     ) -> None:
-        """Keep Ego's J1 approach and both transverse J2 directions green.
+        """Keep J1 open for Ego and switch J2 from transverse to corridor.
 
         Each phase is bound to concrete CARLA road/lane IDs from the routes
         used by TrafficManager. This avoids selecting a nearby pole group or
@@ -387,16 +421,25 @@ class RegionalIntersectionScenario:
                     )
                     for route in green_routes
                 )
-                expected = (
+                early_expected = (
                     carla.TrafficLightState.Green
                     if is_green
                     else carla.TrafficLightState.Red
                 )
+                late_expected = early_expected
+                if label == "J2_cross_green":
+                    late_expected = (
+                        carla.TrafficLightState.Red
+                        if is_green
+                        else carla.TrafficLightState.Green
+                    )
                 green_count += int(is_green)
                 red_count += int(not is_green)
                 self._fixed_signal_states[int(light.id)] = {
                     "actor": light,
-                    "expected": expected,
+                    "expected": early_expected,
+                    "early_expected": early_expected,
+                    "late_expected": late_expected,
                     "junction": label,
                     "green_route_lane_keys": sorted(
                         {
@@ -419,27 +462,56 @@ class RegionalIntersectionScenario:
                     f"{label} route-to-signal mapping is ambiguous: "
                     f"green={green_count}, red={red_count}"
                 )
-            green_ids = sorted(
+            early_green_ids = sorted(
                 light_id
                 for light_id, record in self._fixed_signal_states.items()
                 if record["junction"] == label
-                and record["expected"] == carla.TrafficLightState.Green
+                and record["early_expected"] == carla.TrafficLightState.Green
             )
-            red_ids = sorted(
+            late_green_ids = sorted(
                 light_id
                 for light_id, record in self._fixed_signal_states.items()
                 if record["junction"] == label
-                and record["expected"] == carla.TrafficLightState.Red
+                and record["late_expected"] == carla.TrafficLightState.Green
             )
-            print(f"Fixed signals {label}: green={green_ids}, red={red_ids}")
+            print(
+                f"Fixed signals {label}: early_green={early_green_ids}, "
+                f"late_green={late_green_ids}"
+            )
 
         # TrafficLight.get_state() exposes the state from the last server
         # tick. Do not assert here: these assignments have not reached a tick
         # yet. Preview/collection validate them immediately after the first
         # synchronous world.tick().
-        self.apply_fixed_signal_plan()
+        self.apply_fixed_signal_plan(0.0)
 
-    def apply_fixed_signal_plan(self) -> None:
+    def _set_expected_signal_phase(self, elapsed_s: float) -> None:
+        if not self._fixed_signal_states:
+            return
+        previous_phase = self._active_signal_phase
+        phase = (
+            "j2_corridor_green"
+            if float(elapsed_s) >= self._signal_switch_time_s
+            else "j2_cross_green"
+        )
+        self._active_signal_phase = phase
+        if phase != previous_phase:
+            print(
+                f"Traffic-light phase switch at t={float(elapsed_s):.1f}s: "
+                f"{previous_phase} -> {phase}"
+            )
+        for record in self._fixed_signal_states.values():
+            early = record.get("early_expected", record.get("expected"))
+            late = record.get("late_expected", early)
+            record["expected"] = (
+                late
+                if phase == "j2_corridor_green"
+                and record.get("junction") == "J2_cross_green"
+                else early
+            )
+
+    def apply_fixed_signal_plan(self, elapsed_s: float = 0.0) -> None:
+        self._set_expected_signal_phase(float(elapsed_s))
         if self._fixed_signal_states and not self._traffic_lights_frozen:
             # CARLA freezes every traffic light in the scene through any
             # TrafficLight actor.  This is intentional for this controlled
@@ -454,7 +526,8 @@ class RegionalIntersectionScenario:
             if light.is_alive:
                 light.set_state(record["expected"])
 
-    def assert_fixed_signal_plan(self) -> None:
+    def assert_fixed_signal_plan(self, elapsed_s: float = 0.0) -> None:
+        self._set_expected_signal_phase(float(elapsed_s))
         mismatches: list[str] = []
         for light_id, record in self._fixed_signal_states.items():
             light = record["actor"]
@@ -476,6 +549,13 @@ class RegionalIntersectionScenario:
                 "traffic_light_id": int(light_id),
                 "junction": str(record["junction"]),
                 "expected_state": _traffic_light_state_name(record["expected"]),
+                "early_expected_state": _traffic_light_state_name(
+                    record.get("early_expected", record["expected"])
+                ),
+                "late_expected_state": _traffic_light_state_name(
+                    record.get("late_expected", record["expected"])
+                ),
+                "switch_time_s": float(self._signal_switch_time_s),
                 "green_route_lane_keys": [
                     [int(road_id), int(lane_id)]
                     for road_id, lane_id in record["green_route_lane_keys"]
@@ -498,6 +578,8 @@ class RegionalIntersectionScenario:
                     "traffic_light_id": int(light_id),
                     "junction": str(record["junction"]),
                     "expected_state": _traffic_light_state_name(record["expected"]),
+                    "phase": str(self._active_signal_phase),
+                    "switch_time_s": float(self._signal_switch_time_s),
                     "actual_state": (
                         _traffic_light_state_name(light.get_state())
                         if light.is_alive
@@ -523,6 +605,7 @@ class RegionalIntersectionScenario:
         except RuntimeError:
             pass
         self._fixed_signal_states.clear()
+        self._active_signal_phase = "j2_cross_green"
 
     def _spawn_background(self, requested: int) -> None:
         center = np.asarray(self.corridor.center[:2], dtype=np.float64)
