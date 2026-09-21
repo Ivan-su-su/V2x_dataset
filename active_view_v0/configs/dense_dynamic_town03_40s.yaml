@@ -60,11 +60,11 @@ regional:
   car3_route_tail_m: 190.0
   transient_coverage_radius_m: 70.0
 
-  # J1 uses Ego's route plus legal opposing straight routes. At t=20 s, J2
+  # J1 stays green along Ego's corridor for the whole clip.  At t=20 s, J2
   # changes from transverse/horizontal green to corridor/vertical green.
   fixed_signal_plan:
     enabled: true
-    j1_bidirectional_green: true
+    j1_bidirectional_green: false
     j2_switch_time_s: 20.0
     route_heading_tolerance_deg: 25.0
     reapply_each_tick: true
