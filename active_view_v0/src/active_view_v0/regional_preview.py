@@ -11,6 +11,7 @@ import numpy as np
 
 from .bev_render import annotate_rgb_snapshot, compose_rgb_timeline, render_timeline
 from .config import dump_effective_config, load_config
+from .weather import weather_parameters
 from .corridors import rank_connected_junctions, select_connected_junctions
 from .regional_layout import build_regional_layout
 from .regional_scenario import RegionalIntersectionScenario
@@ -65,7 +66,7 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
         traffic_manager.set_random_device_seed(int(carla_cfg["seed"]))
-        world.set_weather(carla.WeatherParameters.ClearNoon)
+        world.set_weather(weather_parameters(cfg, carla))
 
         scenario = RegionalIntersectionScenario(client, world, traffic_manager, cfg, corridor)
         scenario.setup()
