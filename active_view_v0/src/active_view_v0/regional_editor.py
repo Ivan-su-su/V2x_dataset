@@ -252,7 +252,10 @@ class SceneEditor:
         self.world = self.client.get_world()
         if not self.world.get_map().name.endswith(str(cc["map"])):
             self.world = self.client.load_world(str(cc["map"]))
-        self.old_settings = self.world.get_settings()
+        # Keep the pre-editor settings across Apply & Restart. Otherwise the
+        # second setup saves our own synchronous settings as the "original".
+        if self.old_settings is None:
+            self.old_settings = self.world.get_settings()
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = float(cc["fixed_delta_seconds"])
