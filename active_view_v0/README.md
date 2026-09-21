@@ -1,3 +1,12 @@
+# 场景标准流程
+
+新场景先阅读 [场景工作流](docs/SCENE_WORKFLOW.md) 并填写
+[`scene_brief.template.yaml`](docs/scene_brief.template.yaml)。
+`python -m active_view_v0.scene_recipe` 将基准场景、天气和运行模式组合为
+可重放的完整 YAML；下方 v1.x 命令是历史实验记录。
+
+---
+
 # ActiveView-v1.3：20 秒、10 Hz、双向动态车流
 
 主配置升级为 `configs/dense_dynamic_town03_20s.yaml`。v1.2 预览表明 Ego 在 10 秒
