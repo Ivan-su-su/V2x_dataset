@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Active AirV2X · 场景编辑器</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#101421; color:#e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin:0; }
+    header { display:flex; flex-wrap:wrap; align-items:center; gap:12px; background:#172033; padding:11px 18px; border-bottom:1px solid #344057; }
+    header strong { font-size:18px; color:#f8fafc; }
+    .muted, small { color:#a5b4cc; font-size:12px; }
+    header .tag { background:#28364f; border:1px solid #42516b; border-radius:5px; padding:4px 8px; }
+    button, select, input { background:#24334b; color:#e2e8f0; border:1px solid #52617c; border-radius:6px; padding:7px 9px; font:inherit; }
+    button { cursor:pointer; }
+    button:hover { background:#354b6b; }
+    button.primary { background:#4f46e5; border-color:#756df5; }
+    button.primary:hover { background:#6158eb; }
+    button.danger { background:#5b2932; border-color:#ae6674; }
+    button:disabled { cursor:wait; opacity:.5; }
+    main { display:grid; grid-template-columns:minmax(540px,1fr) 390px; height:calc(100vh - 59px); }
+    #map-area { display:flex; flex-direction:column; padding:12px; min-height:0; gap:8px; }
+    .toolbar { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+    .toolbar .spacer { flex:1; }
+    #stage { position:relative; display:flex; justify-content:center; align-items:center; flex:1; min-height:0; overflow:auto; background:#0a0e19; border:1px solid #334155; border-radius:9px; }
+    #canvas { max-width:100%; max-height:100%; object-fit:contain; cursor:crosshair; }
+    #status { font-size:12px; min-height:18px; color:#b7c5df; }
+    #status.error { color:#ff9198; }
+    aside { overflow-y:auto; padding:14px; border-left:1px solid #334155; background:#161d2d; }
+    section { background:#1e293d; border:1px solid #35445e; padding:12px; margin-bottom:11px; border-radius:9px; }
+    h2 { font-size:15px; margin:0 0 10px; }
+    label { display:grid; gap:4px; font-size:12px; color:#c7d2e7; }
+    label input, label select { width:100%; font-size:13px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .form-grid .wide { grid-column:span 2; }
+    .btn-row { display:flex; gap:7px; margin:8px 0 0; flex-wrap:wrap; }
+    #vehicles { max-height:185px; overflow:auto; border:1px solid #42516b; border-radius:6px; }
+    .vehicle { display:flex; width:100%; justify-content:space-between; border-radius:0; border:0; border-bottom:1px solid #35445e; text-align:left; padding:5px 8px; font-size:12px; }
+    .vehicle.current { background:#42547a; }
+    .vehicle:last-child { border-bottom:0; }
+    .signal { display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-bottom:1px solid #35445e; }
+    .good { color:#7ee6a3; } .bad { color:#ff8f8f; } .warn { color:#f9d97f; }
+    .path { overflow-wrap:anywhere; color:#a6b6d0; font-size:11px; }
+    .hint { color:#a7b5cc; line-height:1.45; font-size:12px; }
+    @media(max-width:980px) { main { grid-template-columns:1fr; height:auto; } #stage { height:65vh; } aside { border-left:0; } }
+  </style>
+</head>
+<body>
+<header>
+  <strong>Active AirV2X · 两路口场景编辑器</strong>
+  <span id="phase" class="tag">连接中</span>
+  <span id="timer" class="tag">t = 0.0 s</span>
+  <span class="muted">CARLA 唯一 tick 控制进程 · 原始数据集不写入</span>
+</header>
+<main>
+  <div id="map-area">
+    <div class="toolbar">
+      <button id="play">▶ 播放</button><button id="pause">Ⅱ 暂停</button>
+      <button id="step">+0.1 s</button><button id="stepSecond">+1 s</button>
+      <button id="restart">↺ 原配置重跑</button>
+      <span class="spacer"></span>
+      <label><input id="ranges" type="checkbox" checked> 范围</label>
+      <label><input id="routes" type="checkbox" checked> 路线</label>
+      <label><input id="trails" type="checkbox" checked> 实际轨迹</label>
+    </div>
+    <div class="toolbar">
+      <span class="muted">点击车辆查看路线；选择位置工具后点击道路，在右侧设置 RSU / UAV 初始区域。</span>
+      <button id="placeRsu">📍点选 RSU</button><button id="placeUav">📍点选 UAV</button>
+      <span id="placeMode" class="tag">选择车辆</span>
+    </div>
+    <div id="stage"><canvas id="canvas" width="1200" height="1000"></canvas></div>
+    <div id="status">正在初始化场景……</div>
+  </div>
+  <aside>
+    <section>
+      <h2>场景全局设置</h2>
+      <div class="form-grid">
+        <label>Ego 速度差百分比<input id="egoSpeed" type="number" min="-80" max="100" step="1"></label>
+        <label>CAV-2 速度差百分比<input id="car3Speed" type="number" min="-80" max="100" step="1"></label>
+        <label>CAV-2 距路口起始距离 m<input id="car3Start" type="number" min="5" max="500" step="1"></label>
+        <label>随机背景车辆数<input id="backgroundCount" type="number" min="0" max="100" step="1"></label>
+        <label>J2 切换绿灯时间 s<input id="switchTime" type="number" min="0" max="40" step="0.1"></label>
+        <label>UAV 初始采样点<select id="uavCandidate"></select></label>
+        <label>RSU 沿 J1→J2 偏移 m<input id="rsuForward" type="number" step="1"></label>
+        <label>RSU 道路右侧偏移 m<input id="rsuRight" type="number" step="1"></label>
+        <label>UAV 网格沿路偏移 m<input id="uavForward" type="number" step="1"></label>
+        <label>UAV 网格道路右偏 m<input id="uavRight" type="number" step="1"></label>
+      </div>
+      <p class="hint">道路右侧按 J1→J2 行驶方向定义；在画面上选点可直接填写四个偏移字段。</p>
+    </section>
+    <section>
+      <h2>交通车辆 <span id="vehicleCount" class="muted"></span></h2>
+      <div id="vehicles"></div>
+      <div class="btn-row"><button id="addVehicle">+ 增加合法路线车辆</button><button class="danger" id="removeVehicle">删除选中车辆</button></div>
+      <p id="actorInfo" class="hint">点击画面里的车辆，或在列表选中车辆。计划路线是虚线，实际轨迹是实线。</p>
+      <div class="form-grid">
+        <label class="wide">角色<input id="vehicleRole" readonly></label>
+        <label class="wide">合法路线<select id="vehicleRoute">
+          <option value="j1_cross">J1 横向</option><option value="j2_cross">J2 横向</option>
+          <option value="j2_cross_reverse">J2 反向横向</option>
+          <option value="corridor_forward">Ego 同向前方</option>
+          <option value="corridor_behind_ego">Ego 同向后方</option>
+          <option value="corridor_oncoming">Ego 对向</option>
+        </select></label>
+        <label>沿路线起始距离 m<input id="vehicleOffset" type="number" min="1" max="500" step="1"></label>
+        <label>速度差百分比<input id="vehicleSpeed" type="number" min="-80" max="100" step="1"></label>
+        <label class="wide"><span><input id="vehicleRequired" type="checkbox"> 必须成功生成（占位冲突时提示错误）</span></label>
+      </div>
+      <p class="hint">修改字段后点“保存草稿并重跑”，场景才会重新生成。路线上的位置遵循 CARLA 合法车道。</p>
+    </section>
+    <section><h2>红绿灯：期望状态 / CARLA 实际状态</h2><div id="lights" class="muted">等待场景……</div></section>
+    <section>
+      <button class="primary" id="apply">保存草稿并重跑</button>
+      <p class="hint">配置会写入独立的 <code>*.editor.yaml</code>，不会覆盖源配置、现有采集目录或评测结果。改动后自动暂停在 t=0。</p>
+      <div id="draft" class="path"></div>
+    </section>
+  </aside>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('canvas'), ctx = canvas.getContext('2d');
+  let photo = new Image();
+  let scene = null, draft = null, selected = '', initialized = false, placing = '', busy = false, lastImage = -1;
+  const num = id => Number($(id).value);
+  const editFields = ['egoSpeed','car3Speed','car3Start','backgroundCount','switchTime',
+    'rsuForward','rsuRight','uavForward','uavRight','uavCandidate'];
+  const controls = {egoSpeed:'ego_speed_difference_pct',car3Speed:'car3_speed_difference_pct',
+    car3Start:'car3_start_before_junction_m',backgroundCount:'background_vehicle_count',
+    switchTime:'j2_switch_time_s',rsuForward:'rsu_forward_m',rsuRight:'rsu_right_m',
+    uavForward:'uav_forward_m',uavRight:'uav_right_m',uavCandidate:'initial_candidate'};
+  const colors = {regional_ego:'#fbbf24',regional_car3:'#60a5fa',regional_car1:'#55d39d'};
+  function color(role) { return colors[role] || (role.includes('blocker') ? '#e879f9' : '#58c6ba'); }
+  function notice(message, error=false) { $('status').textContent=message; $('status').className=error?'error':''; }
+  async function action(command, payload) {
+    if (busy) return;
+    busy=true;
+    try {
+      const response=await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({command,payload})});
+      const result=await response.json();
+      if(!result.ok) throw Error(result.error);
+      notice(command==='apply_restart' ? '草稿已保存，场景已重建。请检查车辆出生点和灯状态。' : '已执行 '+command);
+      if(command==='apply_restart'||command==='restart') {initialized=false;lastImage=-1;}
+      await poll();
+      return result.result;
+    } catch(error) { notice(String(error),true); }
+    finally {busy=false;}
+  }
+  function commitVehicle() {
+    if(!selected || !draft) return;
+    const spec=draft.support_vehicles.find(x=>x.role===selected);
+    if(!spec) return;
+    spec.route=$('vehicleRoute').value;
+    spec.start_offset_m=num('vehicleOffset');
+    spec.speed_difference_pct=num('vehicleSpeed');
+    spec.required=$('vehicleRequired').checked;
+  }
+  function choose(role) {
+    commitVehicle();selected=role;
+    const spec=draft && draft.support_vehicles.find(x=>x.role===role);
+    $('vehicleRole').value=role;
+    $('vehicleRoute').value=spec?.route||'corridor_forward';
+    $('vehicleOffset').value=spec?.start_offset_m??'';
+    $('vehicleSpeed').value=spec?.speed_difference_pct??'';
+    $('vehicleRequired').checked=Boolean(spec?.required);
+    const actor=scene?.actors.find(x=>x.role_name===role);
+    $('actorInfo').textContent=actor
+      ? `${role}  |  ${actor.speed_mps.toFixed(1)} m/s  |  位置 (${actor.location[0].toFixed(1)}, ${actor.location[1].toFixed(1)})  |  CARLA actor ${actor.actor_id}`
+      : `${role} 尚未生成或超出视野；修改位置后重跑可以检查出生点冲突。`;
+    renderVehicles();draw();
+  }
+  function renderVehicles() {
+    const container=$('vehicles');container.replaceChildren();
+    if(!draft)return;
+    $('vehicleCount').textContent=`(${draft.support_vehicles.length} 辆自定义交通车辆)`;
+    for(const spec of draft.support_vehicles) {
+      const actor=scene?.actors.find(x=>x.role_name===spec.role);
+      const element=document.createElement('button');element.className='vehicle'+(selected===spec.role?' current':'');
+      const label=document.createElement('span');label.textContent=spec.role;
+      const badge=document.createElement('span');badge.textContent=actor?`${actor.speed_mps.toFixed(1)} m/s`:'未生成';
+      badge.className=actor?.speed_mps < .35?'warn':'muted';
+      element.append(label,badge);element.onclick=()=>choose(spec.role);
+      container.appendChild(element);
+    }
+  }
+  function polyline(points, stroke, lineWidth=2, dash=[]) {
+    ctx.beginPath();ctx.setLineDash(dash);ctx.strokeStyle=stroke;ctx.lineWidth=lineWidth;
+    let started=false;
+    for(const point of points||[]) {if(!point){started=false;continue;}
+      if(started)ctx.lineTo(point[0],point[1]);else{ctx.moveTo(point[0],point[1]);started=true;}}
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  function circle(point,radius,stroke,fill=null) {
+    if(!point)return;
+    ctx.beginPath();ctx.arc(point[0],point[1],radius,0,Math.PI*2);
+    ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();
+    if(fill){ctx.fillStyle=fill;ctx.fill();}
+  }
+  function marker(point,text,fill,small=false) {
+    if(!point)return;
+    circle(point,small?5:8,'#071525',fill);
+    ctx.font=small?'12px system-ui':'bold 14px system-ui';
+    const width=ctx.measureText(text).width+12;
+    ctx.fillStyle='#0b162de8';ctx.fillRect(point[0]+9,point[1]-17,width,20);
+    ctx.fillStyle='#f9fafb';ctx.fillText(text,point[0]+15,point[1]-3);
+  }
+  function draw() {
+    if(!scene)return;
+    const w=scene.image_width,h=scene.image_height;
+    if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+    ctx.clearRect(0,0,w,h);
+    if(photo.complete && photo.naturalWidth)ctx.drawImage(photo,0,0,w,h);
+    if($('routes').checked) {
+      for(const role of ['regional_ego','regional_car3',selected]) {
+        if(role&&scene.routes[role])polyline(scene.routes[role],color(role),role===selected?3:2,[8,5]);
+      }
+    }
+    if($('trails').checked)for(const [role,points] of Object.entries(scene.trails||{})){
+      if(role===selected||role==='regional_ego'||role==='regional_car3')polyline(points,color(role),role===selected?4:2);
+    }
+    const j1=scene.junctions?.[0],j2=scene.junctions?.[1];
+    const meters=scene.junction_distance_m||60;
+    const scale=j1&&j2?Math.hypot(j1[0]-j2[0],j1[1]-j2[1])/meters:1;
+    if($('ranges').checked) {
+      ctx.setLineDash([9,8]);
+      for(const role of ['regional_ego','regional_car3']){
+        const actor=scene.actors.find(x=>x.role_name===role);
+        circle(actor?.uv,scene.sensor_ranges.vehicle_m*scale,color(role)+'bb');
+      }
+      circle(scene.rsu_uv,scene.sensor_ranges.rsu_m*scale,'#ff6b6bbb');
+      circle(scene.uav_uv,scene.sensor_ranges.uav_ground_m*scale,'#a78bfae0');
+      ctx.setLineDash([]);
+    }
+    for(const [i,junction] of (scene.junctions||[]).entries())marker(junction,'J'+(i+1),'#06b6d4',true);
+    for(const cell of scene.grid||[])circle(cell.uv,3,'#b892ff');
+    for(const light of scene.lights||[])circle(light.uv,4,light.actual_state==='Green'?'#34d399':'#fb7185');
+    marker(scene.rsu_uv,'RSU','#ef4444');marker(scene.uav_uv,'UAV 初始点','#8b5cf6');
+    for(const actor of scene.actors||[]) {
+      if(!actor.uv||actor.role_name==='regional_background')continue;
+      const short=actor.role_name==='regional_ego'?'Ego':actor.role_name==='regional_car3'?'CAV-2':actor.role_name;
+      marker(actor.uv,short+(actor.role_name===selected?' ◀':''),color(actor.role_name),actor.role_name!==selected);
+    }
+    ctx.fillStyle='#0b162de8';ctx.fillRect(12,12,166,34);
+    ctx.fillStyle='#fff';ctx.font='bold 17px system-ui';ctx.fillText(`t = ${scene.time_s.toFixed(1)} s`,24,35);
+  }
+  function showLights() {
+    const out=$('lights');out.replaceChildren();
+    for(const s of scene?.lights||[]) {
+      const line=document.createElement('div');line.className='signal';
+      const name=document.createElement('span');name.textContent=`${s.junction}  灯 #${s.traffic_light_id}`;
+      const states=document.createElement('span');states.textContent=`${s.expected_state} / ${s.actual_state}`;
+      states.className=s.expected_state===s.actual_state?'good':'bad';
+      line.append(name,states);out.appendChild(line);
+    }
+  }
+  async function poll() {
+    try {
+      const response=await fetch('/api/state');scene=await response.json();
+      $('phase').textContent=scene.status==='error'?'场景错误':scene.playing?'运行中':scene.status==='done'?'已结束':'已暂停';
+      $('timer').textContent=`t = ${(scene.time_s||0).toFixed(1)} / ${scene.duration_s||'?'} s`;
+      if(scene.status==='error'){notice(scene.error,true);return;}
+      if(!scene.image_version)return;
+      if(!initialized) {
+        draft=structuredClone(scene.config);
+        for(const id of editFields) {
+          const key=controls[id];$(id).value=draft[key];
+        }
+        $('uavCandidate').replaceChildren();
+        for(const item of scene.grid) {const option=new Option(item.name,item.name);$('uavCandidate').add(option);}
+        $('uavCandidate').value=draft.initial_candidate;
+        selected='';
+        initialized=true;choose(draft.support_vehicles[0]?.role||'');
+        $('draft').textContent='输出草稿：'+scene.draft_path;
+      }
+      if(lastImage!==scene.image_version) {
+        const next=new Image();
+        next.onload=()=>{photo=next;draw();};
+        next.src='/api/image?v='+scene.image_version;
+        lastImage=scene.image_version;
+      }
+      if(selected) {
+        const actor=scene.actors.find(x=>x.role_name===selected);
+        if(actor) $('actorInfo').textContent=`${selected}  |  ${actor.speed_mps.toFixed(1)} m/s  |  位置 (${actor.location[0].toFixed(1)}, ${actor.location[1].toFixed(1)})  |  actor ${actor.actor_id}`;
+      }
+      renderVehicles();showLights();draw();
+    } catch(error) {notice('连接场景进程失败：'+error,true);}
+  }
+  function setMode(value) {
+    placing=placing===value?'':value;
+    $('placeMode').textContent=placing?`点击画面放置 ${placing.toUpperCase()}`:'选择车辆';
+  }
+  $('placeRsu').onclick=()=>setMode('rsu');$('placeUav').onclick=()=>setMode('uav');
+  canvas.onclick=async event=>{
+    if(!scene)return;
+    const box=canvas.getBoundingClientRect();
+    const u=(event.clientX-box.left)*scene.image_width/box.width;
+    const v=(event.clientY-box.top)*scene.image_height/box.height;
+    if(placing){
+      const target=placing;setMode(placing);
+      const result=await action('place',{target,u,v});
+      if(result){
+        const prefix=target==='rsu'?'rsu':'uav';
+        $(prefix==='rsu'?'rsuForward':'uavForward').value=result.forward_m;
+        $(prefix==='rsu'?'rsuRight':'uavRight').value=result.right_m;
+        notice(`${target.toUpperCase()} 偏移已填写：沿路 ${result.forward_m} m，道路右侧 ${result.right_m} m；保存草稿并重跑后生效。`);
+      }
+      return;
+    }
+    let nearest=null,distance=20;
+    for(const actor of scene.actors){if(!actor.uv || actor.role_name==='regional_background')continue;
+      const d=Math.hypot(actor.uv[0]-u,actor.uv[1]-v);
+      if(d<distance){nearest=actor;distance=d;}}
+    if(nearest)choose(nearest.role_name);
+  };
+  $('addVehicle').onclick=()=>{
+    if(!draft)return;commitVehicle();
+    let i=1;while(draft.support_vehicles.some(x=>x.role==='regional_extra_'+i))i++;
+    const role='regional_extra_'+i;
+    draft.support_vehicles.push({role,route:'j2_cross',start_offset_m:100,speed_difference_pct:0,required:false});
+    choose(role);
+  };
+  $('removeVehicle').onclick=()=>{
+    if(!draft||!selected)return;
+    draft.support_vehicles=draft.support_vehicles.filter(x=>x.role!==selected);
+    selected='';choose(draft.support_vehicles[0]?.role||'');
+  };
+  $('apply').onclick=async()=>{
+    commitVehicle();
+    const edits={support_vehicles:draft.support_vehicles};
+    for(const id of editFields){edits[controls[id]]=id==='uavCandidate'?$(id).value:num(id);}
+    await action('apply_restart',edits);
+  };
+  $('restart').onclick=()=>action('restart');
+  $('play').onclick=()=>action('play');$('pause').onclick=()=>action('pause');
+  $('step').onclick=()=>action('step');$('stepSecond').onclick=()=>action('step_second');
+  for(const id of ['ranges','routes','trails'])$(id).onchange=draw;
+  poll();setInterval(()=>{if(!busy)poll();},250);
+})();
+</script>
+</body></html>
