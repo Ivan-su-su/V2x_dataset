@@ -23,8 +23,8 @@
     #map-area { display:flex; flex-direction:column; padding:12px; min-height:0; gap:8px; }
     .toolbar { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
     .toolbar .spacer { flex:1; }
-    #stage { position:relative; display:flex; justify-content:center; align-items:center; flex:1; min-height:0; overflow:auto; background:#0a0e19; border:1px solid #334155; border-radius:9px; }
-    #canvas { max-width:100%; max-height:100%; object-fit:contain; cursor:crosshair; }
+    #stage { position:relative; display:flex; justify-content:flex-start; align-items:flex-start; flex:1; min-height:0; overflow:auto; background:#0a0e19; border:1px solid #334155; border-radius:9px; }
+    #canvas { flex:none; cursor:crosshair; }
     #status { font-size:12px; min-height:18px; color:#b7c5df; }
     #status.error { color:#ff9198; }
     aside { overflow-y:auto; padding:14px; border-left:1px solid #334155; background:#161d2d; }
@@ -63,10 +63,13 @@
       <label><input id="ranges" type="checkbox" checked> 范围</label>
       <label><input id="routes" type="checkbox" checked> 路线</label>
       <label><input id="trails" type="checkbox" checked> 实际轨迹</label>
+      <label><input id="trafficLabels" type="checkbox"> 其他车辆名称</label>
+      <button id="zoomOut">－</button><span id="zoomText" class="muted">全图</span><button id="zoomIn">＋</button>
     </div>
     <div class="toolbar">
-      <span class="muted">点击车辆查看路线；选择位置工具后点击道路，在右侧设置 RSU / UAV 初始区域。</span>
-      <button id="placeRsu">📍点选 RSU</button><button id="placeUav">📍点选 UAV</button>
+      <span class="muted">先选地图和连通路口；点选车辆看路线，点选位置工具设出生点。</span>
+      <button id="placeJ1">选 J1</button><button id="placeJ2">选 J2</button>
+      <button id="placeEgo">点选 Ego 起点</button><button id="placeRsu">点选 RSU</button><button id="placeUav">点选 UAV</button>
       <span id="placeMode" class="tag">选择车辆</span>
     </div>
     <div id="stage"><canvas id="canvas" width="1200" height="1000"></canvas></div>
@@ -76,6 +79,9 @@
     <section>
       <h2>场景全局设置</h2>
       <div class="form-grid">
+        <label>地图（本机已安装）<select id="mapName"></select></label>
+        <label>合法直行路线<select id="pair"></select></label>
+        <label class="wide">Ego 沿选中路线起点前移 m<input id="egoAdvance" type="number" min="0" max="300" step="1"></label>
         <label>Ego 速度差百分比<input id="egoSpeed" type="number" min="-80" max="100" step="1"></label>
         <label>CAV-2 速度差百分比<input id="car3Speed" type="number" min="-80" max="100" step="1"></label>
         <label>CAV-2 距路口起始距离 m<input id="car3Start" type="number" min="5" max="500" step="1"></label>
@@ -87,7 +93,7 @@
         <label>UAV 网格沿路偏移 m<input id="uavForward" type="number" step="1"></label>
         <label>UAV 网格道路右偏 m<input id="uavRight" type="number" step="1"></label>
       </div>
-      <p class="hint">道路右侧按 J1→J2 行驶方向定义；在画面上选点可直接填写四个偏移字段。</p>
+      <p class="hint">可在全图点选一对沿道路直行相连的路口；Ego 起点须在这条路线附近。切换地图后先重建，再点新地图上的位置。道路右侧按 J1→J2 行驶方向定义。</p>
     </section>
     <section>
       <h2>交通车辆 <span id="vehicleCount" class="muted"></span></h2>
@@ -112,7 +118,7 @@
     <section><h2>红绿灯：期望状态 / CARLA 实际状态</h2><div id="lights" class="muted">等待场景……</div></section>
     <section>
       <button class="primary" id="apply">保存草稿并重跑</button>
-      <p class="hint">配置会写入独立的 <code>*.editor.yaml</code>，不会覆盖源配置、现有采集目录或评测结果。改动后自动暂停在 t=0。</p>
+      <p class="hint">配置写入独立的 <code>*.editor.yaml</code>，不会覆盖原配置或数据集。编辑器目前支持直行相连的两路口场景；任意转弯路线和更多路口的交通灯方案需要扩展场景生成器。</p>
       <div id="draft" class="path"></div>
     </section>
   </aside>
@@ -122,17 +128,46 @@
   const $ = id => document.getElementById(id);
   const canvas = $('canvas'), ctx = canvas.getContext('2d');
   let photo = new Image();
-  let scene = null, draft = null, selected = '', initialized = false, placing = '', busy = false, lastImage = -1;
+  let scene = null, draft = null, selected = '', initialized = false, placing = '', busy = false, lastImage = -1, zoom = 1;
   const num = id => Number($(id).value);
-  const editFields = ['egoSpeed','car3Speed','car3Start','backgroundCount','switchTime',
+  const editFields = ['egoAdvance','egoSpeed','car3Speed','car3Start','backgroundCount','switchTime',
     'rsuForward','rsuRight','uavForward','uavRight','uavCandidate'];
-  const controls = {egoSpeed:'ego_speed_difference_pct',car3Speed:'car3_speed_difference_pct',
+  const controls = {egoAdvance:'ego_start_advance_m',egoSpeed:'ego_speed_difference_pct',car3Speed:'car3_speed_difference_pct',
     car3Start:'car3_start_before_junction_m',backgroundCount:'background_vehicle_count',
     switchTime:'j2_switch_time_s',rsuForward:'rsu_forward_m',rsuRight:'rsu_right_m',
     uavForward:'uav_forward_m',uavRight:'uav_right_m',uavCandidate:'initial_candidate'};
   const colors = {regional_ego:'#fbbf24',regional_car3:'#60a5fa',regional_car1:'#55d39d'};
   function color(role) { return colors[role] || (role.includes('blocker') ? '#e879f9' : '#58c6ba'); }
   function notice(message, error=false) { $('status').textContent=message; $('status').className=error?'error':''; }
+  function fitCanvas() {
+    if (!scene?.image_width) return;
+    const stage=$('stage');
+    const fit=Math.min((stage.clientWidth-3)/scene.image_width,(stage.clientHeight-3)/scene.image_height);
+    const scale=Math.max(.1,fit)*zoom;
+    canvas.style.width=Math.round(scene.image_width*scale)+'px';
+    canvas.style.height=Math.round(scene.image_height*scale)+'px';
+    $('zoomText').textContent=zoom===1?'全图':`${zoom.toFixed(1)}×`;
+  }
+  function updatePairOptions() {
+    const pair=$('pair');
+    pair.replaceChildren();
+    if ($('mapName').value!==scene?.config.map_name) {
+      pair.add(new Option('先保存地图并重跑',''));
+      pair.disabled=true;
+      return;
+    }
+    pair.disabled=false;
+    for(const item of scene.connected_pairs||[])
+      pair.add(new Option(item.name,`${item.first}:${item.second}`));
+    const wanted=(draft.junction_1_id??scene.config.junction_1_id)+':'+
+                 (draft.junction_2_id??scene.config.junction_2_id);
+    pair.value=[...pair.options].some(o=>o.value===wanted)?wanted:'';
+    if(!pair.value&&pair.options.length) {
+      pair.selectedIndex=0;
+      const [first,second]=pair.value.split(':').map(Number);
+      draft.junction_1_id=first;draft.junction_2_id=second;
+    }
+  }
   async function action(command, payload) {
     if (busy) return;
     busy=true;
@@ -233,12 +268,27 @@
       circle(scene.uav_uv,scene.sensor_ranges.uav_ground_m*scale,'#a78bfae0');
       ctx.setLineDash([]);
     }
-    for(const [i,junction] of (scene.junctions||[]).entries())marker(junction,'J'+(i+1),'#06b6d4',true);
+    const chosen=[draft?.junction_1_id??scene.config.junction_1_id,
+                  draft?.junction_2_id??scene.config.junction_2_id];
+    for(const junction of scene.map_junctions||[]) {
+      if(!junction.uv)continue;
+      const index=chosen.indexOf(junction.id);
+      if(index>=0)marker(junction.uv,`J${index+1} · ${junction.name}`,'#06b6d4',true);
+      else {
+        circle(junction.uv,3,'#b8d6e9a0');
+        ctx.font='11px system-ui';ctx.fillStyle='#e2e8f0aa';
+        ctx.fillText(junction.name,junction.uv[0]+5,junction.uv[1]-6);
+      }
+    }
     for(const cell of scene.grid||[])circle(cell.uv,3,'#b892ff');
     for(const light of scene.lights||[])circle(light.uv,4,light.actual_state==='Green'?'#34d399':'#fb7185');
-    marker(scene.rsu_uv,'RSU','#ef4444');marker(scene.uav_uv,'UAV 初始点','#8b5cf6');
+    marker(scene.rsu_uv,'RSU','#ef4444');marker(scene.uav_uv,'Drone','#8b5cf6');
+    const cooperative=new Set(scene.agent_roles||[]);
     for(const actor of scene.actors||[]) {
-      if(!actor.uv||actor.role_name==='regional_background')continue;
+      if(!actor.uv)continue;
+      if(!cooperative.has(actor.role_name)&&!$('trafficLabels').checked) {
+        circle(actor.uv,3,color(actor.role_name));continue;
+      }
       const short=actor.role_name==='regional_ego'?'Ego':actor.role_name==='regional_car3'?'CAV-2':actor.role_name;
       marker(actor.uv,short+(actor.role_name===selected?' ◀':''),color(actor.role_name),actor.role_name!==selected);
     }
@@ -264,6 +314,10 @@
       if(!scene.image_version)return;
       if(!initialized) {
         draft=structuredClone(scene.config);
+        $('mapName').replaceChildren();
+        for(const name of scene.available_maps||[])$('mapName').add(new Option(name,name));
+        $('mapName').value=draft.map_name;
+        updatePairOptions();
         for(const id of editFields) {
           const key=controls[id];$(id).value=draft[key];
         }
@@ -274,6 +328,7 @@
         initialized=true;choose(draft.support_vehicles[0]?.role||'');
         $('draft').textContent='输出草稿：'+scene.draft_path;
       }
+      fitCanvas();
       if(lastImage!==scene.image_version) {
         const next=new Image();
         next.onload=()=>{photo=next;draw();};
@@ -292,6 +347,26 @@
     $('placeMode').textContent=placing?`点击画面放置 ${placing.toUpperCase()}`:'选择车辆';
   }
   $('placeRsu').onclick=()=>setMode('rsu');$('placeUav').onclick=()=>setMode('uav');
+  $('placeEgo').onclick=()=>setMode('ego');
+  $('placeJ1').onclick=()=>setMode('j1');$('placeJ2').onclick=()=>setMode('j2');
+  $('mapName').onchange=()=>{
+    draft.map_name=$('mapName').value;
+    draft.junction_1_id=null;draft.junction_2_id=null;
+    updatePairOptions();draw();
+    notice(draft.map_name===scene.config.map_name?'地图已选；选择路线再重跑。':'保存草稿并重跑以加载地图，然后点选路口。');
+  };
+  $('pair').onchange=()=>{
+    const [first,second]=$('pair').value.split(':').map(Number);
+    draft.junction_1_id=first;draft.junction_2_id=second;draw();
+    notice('已选合法直行路线；保存草稿并重跑后可点选 Ego 起点。');
+  };
+  $('zoomOut').onclick=()=>{zoom=Math.max(1,zoom/1.5);fitCanvas();};
+  $('zoomIn').onclick=()=>{zoom=Math.min(8,zoom*1.5);fitCanvas();};
+  $('stage').addEventListener('wheel',event=>{
+    if(!event.ctrlKey)return;
+    event.preventDefault();zoom=Math.max(1,Math.min(8,zoom*(event.deltaY<0?1.2:1/1.2)));fitCanvas();
+  },{passive:false});
+  window.addEventListener('resize',fitCanvas);
   canvas.onclick=async event=>{
     if(!scene)return;
     const box=canvas.getBoundingClientRect();
@@ -299,8 +374,34 @@
     const v=(event.clientY-box.top)*scene.image_height/box.height;
     if(placing){
       const target=placing;setMode(placing);
+      if(target==='j1'||target==='j2'){
+        if(draft.map_name!==scene.config.map_name){notice('请先保存并重跑以加载选中的地图。',true);return;}
+        let nearest=null,distance=25*scene.image_width/box.width;
+        for(const item of scene.map_junctions||[]){if(!item.uv)continue;
+          const d=Math.hypot(item.uv[0]-u,item.uv[1]-v);
+          if(d<distance){distance=d;nearest=item;}}
+        if(!nearest){notice('请点击有浅色名称的路口。',true);return;}
+        const matches=scene.connected_pairs.filter(item=>target==='j1'?item.first===nearest.id:item.second===nearest.id);
+        const compatible=matches.find(item=>target==='j1'?item.second===draft.junction_2_id:item.first===draft.junction_1_id);
+        const chosen=compatible||matches[0];
+        if(!chosen){notice(`${nearest.name} 没有满足间距限制的直行相连路口；请选其他路口。`,true);return;}
+        draft.junction_1_id=chosen.first;draft.junction_2_id=chosen.second;
+        updatePairOptions();draw();
+        notice(`选中 ${chosen.name}；保存并重跑后新路线生效。`);
+        return;
+      }
+      if(draft.map_name!==scene.config.map_name||
+         draft.junction_1_id!==scene.config.junction_1_id||
+         draft.junction_2_id!==scene.config.junction_2_id){
+        notice('请先保存并重跑选中的地图和路线，再点选位置。',true);return;
+      }
       const result=await action('place',{target,u,v});
       if(result){
+        if(target==='ego'){
+          $('egoAdvance').value=result.advance_m;
+          notice(`Ego 起点前移 ${result.advance_m} m；保存草稿并重跑后生效。`);
+          return;
+        }
         const prefix=target==='rsu'?'rsu':'uav';
         $(prefix==='rsu'?'rsuForward':'uavForward').value=result.forward_m;
         $(prefix==='rsu'?'rsuRight':'uavRight').value=result.right_m;
@@ -308,7 +409,7 @@
       }
       return;
     }
-    let nearest=null,distance=20;
+    let nearest=null,distance=20*scene.image_width/box.width;
     for(const actor of scene.actors){if(!actor.uv || actor.role_name==='regional_background')continue;
       const d=Math.hypot(actor.uv[0]-u,actor.uv[1]-v);
       if(d<distance){nearest=actor;distance=d;}}
@@ -328,14 +429,15 @@
   };
   $('apply').onclick=async()=>{
     commitVehicle();
-    const edits={support_vehicles:draft.support_vehicles};
+    const edits={support_vehicles:draft.support_vehicles,map_name:$('mapName').value,
+      junction_1_id:draft.junction_1_id,junction_2_id:draft.junction_2_id};
     for(const id of editFields){edits[controls[id]]=id==='uavCandidate'?$(id).value:num(id);}
     await action('apply_restart',edits);
   };
   $('restart').onclick=()=>action('restart');
   $('play').onclick=()=>action('play');$('pause').onclick=()=>action('pause');
   $('step').onclick=()=>action('step');$('stepSecond').onclick=()=>action('step_second');
-  for(const id of ['ranges','routes','trails'])$(id).onchange=draw;
+  for(const id of ['ranges','routes','trails','trafficLabels'])$(id).onchange=draw;
   poll();setInterval(()=>{if(!busy)poll();},250);
 })();
 </script>
