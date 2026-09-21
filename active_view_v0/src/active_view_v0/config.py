@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from .weather import validate_weather
+
 
 DEFAULTS: dict[str, Any] = {
     "carla": {
@@ -16,6 +18,7 @@ DEFAULTS: dict[str, Any] = {
         "fixed_delta_seconds": 0.1,
         "traffic_manager_port": 8000,
         "seed": 42,
+        "weather": {"preset": "ClearNoon", "overrides": {}},
     },
     "output": {
         "root": "./datasets/active_view_v0",
@@ -111,6 +114,7 @@ def load_config(path: str | Path) -> dict[str, Any]:
 
 
 def validate_config(cfg: dict[str, Any]) -> None:
+    validate_weather(cfg["carla"].get("weather", {"preset": "ClearNoon"}))
     dt = float(cfg["carla"]["fixed_delta_seconds"])
     key_dt = float(cfg["grid"]["keyframe_interval_s"])
     size = int(cfg["grid"]["size"])
