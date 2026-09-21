@@ -4,4 +4,5 @@ __pycache__/
 .venv/
 outputs/
 datasets/
-
+configs/generated/
+configs/*.editor.yaml
