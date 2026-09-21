@@ -1,0 +1,3 @@
+# CARLA overhead RGB timeline at the scene's snapshot_times_s.
+profile: snapshot_preview
+overrides: {}
