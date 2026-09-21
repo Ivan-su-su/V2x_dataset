@@ -24,9 +24,10 @@ import numpy as np
 
 from .bev_render import project_world_to_camera
 from .config import dump_effective_config, load_config, validate_config
-from .corridors import select_connected_junctions
+from .corridors import extend_route_straight, rank_connected_junctions
+from .junctions import rank_junctions
 from .regional_layout import build_regional_layout
-from .regional_preview import _add_overhead_camera, _sensor_range_summary
+from .regional_preview import _sensor_range_summary
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
 
@@ -35,6 +36,25 @@ ALLOWED_ROUTES = {
     "j1_cross", "j2_cross", "j2_cross_reverse", "corridor_forward",
     "corridor_behind_ego", "corridor_oncoming",
 }
+AIRV2X_TOWNS = ("Town01", "Town02", "Town03", "Town04", "Town06", "Town07", "Town12")
+
+
+def nearest_route_distance(point_xy: Any, route_xyz: Any) -> tuple[float, float]:
+    """Return arc length and lateral error at the closest point of a legal route."""
+    points = np.asarray(route_xyz, dtype=np.float64)[:, :2]
+    point = np.asarray(point_xy, dtype=np.float64)[:2]
+    if len(points) < 2:
+        raise ValueError("the selected route has fewer than two waypoints")
+    start, delta = points[:-1], np.diff(points, axis=0)
+    squared = np.einsum("ij,ij->i", delta, delta)
+    fraction = np.clip(np.einsum("ij,ij->i", point - start, delta) /
+                       np.maximum(squared, 1e-9), 0, 1)
+    projected = start + fraction[:, None] * delta
+    errors = np.linalg.norm(projected - point, axis=1)
+    index = int(np.argmin(errors))
+    distance = float(np.linalg.norm(delta[:index], axis=1).sum() +
+                     fraction[index] * math.sqrt(squared[index]))
+    return distance, float(errors[index])
 
 
 def finite_number(value: Any, name: str, minimum: float, maximum: float) -> float:
@@ -57,12 +77,34 @@ def edited_config(cfg: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any
                "car3_start_before_junction_m", "background_vehicle_count",
                "j2_switch_time_s", "rsu_forward_m", "rsu_right_m",
                "uav_forward_m", "uav_right_m", "initial_candidate",
-               "support_vehicles"}
+               "support_vehicles", "map_name", "junction_1_id", "junction_2_id",
+               "ego_start_advance_m"}
     unexpected = set(changes) - allowed
     if unexpected:
         raise ValueError(f"unsupported edit fields: {sorted(unexpected)}")
     updated = copy.deepcopy(cfg)
     region = updated["regional"]
+    if "map_name" in changes:
+        name = str(changes["map_name"])
+        if name not in AIRV2X_TOWNS:
+            raise ValueError("select an AirV2X CARLA town from the map list")
+        if name != str(cfg["carla"]["map"]):
+            region["junction_1_id"] = region["junction_2_id"] = None
+        updated["carla"]["map"] = name
+    if "junction_1_id" in changes or "junction_2_id" in changes:
+        first = changes.get("junction_1_id", region.get("junction_1_id"))
+        second = changes.get("junction_2_id", region.get("junction_2_id"))
+        if (first is None) != (second is None):
+            raise ValueError("select both J1 and J2, or clear both")
+        if first is not None:
+            first, second = int(first), int(second)
+            if first == second:
+                raise ValueError("J1 and J2 must differ")
+        region["junction_1_id"], region["junction_2_id"] = first, second
+    if "ego_start_advance_m" in changes:
+        region["ego_start_advance_m"] = finite_number(
+            changes["ego_start_advance_m"], "ego_start_advance_m", 0, 300
+        )
     for field in ("ego_speed_difference_pct", "car3_speed_difference_pct"):
         if field in changes:
             region[field] = finite_number(changes[field], field, -80.0, 100.0)
@@ -176,6 +218,7 @@ class SceneEditor:
         self.jpeg = b""
         self.client = self.world = self.traffic_manager = self.scenario = self.rig = None
         self.camera = self.corridor = self.layout = None
+        self.junction_infos = self.pair_candidates = self.available_maps = None
         self.old_settings = None
         self.routes = {}
         self.trails: dict[str, list[list[float]]] = {}
@@ -249,6 +292,9 @@ class SceneEditor:
         if self.client is None:
             self.client = carla.Client(str(cc["host"]), int(cc["port"]))
         self.client.set_timeout(float(cc["timeout_s"]))
+        available = {entry.rsplit("/", 1)[-1] for entry in self.client.get_available_maps()}
+        if str(cc["map"]) not in available:
+            raise ValueError(f"CARLA map {cc['map']} is not installed on this server")
         self.world = self.client.get_world()
         if not self.world.get_map().name.endswith(str(cc["map"])):
             self.world = self.client.load_world(str(cc["map"]))
@@ -265,11 +311,25 @@ class SceneEditor:
         self.traffic_manager.set_synchronous_mode(True)
         self.traffic_manager.set_random_device_seed(int(cc["seed"]))
         region = config["regional"]
-        self.corridor = select_connected_junctions(
-            self.world.get_map(), region.get("junction_1_id"), region.get("junction_2_id"),
-            int(region.get("corridor_rank", 0)), float(region["min_junction_separation_m"]),
+        self.available_maps = [name for name in AIRV2X_TOWNS if name in available]
+        carla_map = self.world.get_map()
+        self.junction_infos = rank_junctions(carla_map)
+        self.pair_candidates = rank_connected_junctions(
+            carla_map, float(region["min_junction_separation_m"]),
             float(region["max_junction_separation_m"]),
         )
+        if not self.pair_candidates:
+            raise ValueError("this town has no straight, lane-connected two-junction route")
+        first_id, second_id = region.get("junction_1_id"), region.get("junction_2_id")
+        if first_id is not None and second_id is not None:
+            self.corridor = next((pair for pair in self.pair_candidates
+                                  if pair.first.junction_id == int(first_id)
+                                  and pair.second.junction_id == int(second_id)), None)
+            if self.corridor is None:
+                raise ValueError(f"no legal route between J1 #{first_id} and J2 #{second_id}")
+        else:
+            rank = int(region.get("corridor_rank", 0))
+            self.corridor = self.pair_candidates[rank]
         self.layout = build_regional_layout(self.corridor, config)
         self.scenario = RegionalIntersectionScenario(
             self.client, self.world, self.traffic_manager, config, self.corridor
@@ -277,12 +337,7 @@ class SceneEditor:
         self.scenario.setup()
         self.routes = self.scenario.metadata()["routes"]
         self.rig = SensorRig(self.world, float(cc["fixed_delta_seconds"]))
-        camera_config = copy.deepcopy(config)
-        camera_config["regional"]["bev_camera"] = dict(region["bev_camera"])
-        camera_config["regional"]["bev_camera"].update({
-            "image_size_x": 1200, "image_size_y": 1000,
-        })
-        self.camera = _add_overhead_camera(self.rig, self.corridor, camera_config)
+        self.camera = self._add_map_camera()
         frame = -1
         for _ in range(max(1, int(round(float(region.get("warmup_s", 0)) / float(cc["fixed_delta_seconds"]))))):
             self.scenario.apply_fixed_signal_plan(0.0)
@@ -293,6 +348,26 @@ class SceneEditor:
         self.trails = {}
         self.playing = False
         self._present(frame)
+
+    def _add_map_camera(self) -> Any:
+        """Show the complete junction network so a new service route can be chosen."""
+        import carla
+
+        points = np.asarray([item.center for item in self.junction_infos], dtype=np.float64)
+        center = (points.min(axis=0) + points.max(axis=0)) / 2
+        width, height, fov = 1600, 1200, 100.0
+        half_horizontal = math.tan(math.radians(fov) / 2)
+        half_vertical = half_horizontal * height / width
+        extent = np.max(np.abs(points[:, :2] - center[:2]), axis=0) + 40
+        altitude = max(float(self.cfg["regional"]["bev_camera"]["height_m"]),
+                       float(extent[0] / half_vertical), float(extent[1] / half_horizontal))
+        return self.rig.add_camera(
+            "global_bev_rgb",
+            carla.Transform(carla.Location(x=float(center[0]), y=float(center[1]),
+                                           z=float(center[2] + altitude)),
+                            carla.Rotation(pitch=-90.0)),
+            {"image_size_x": width, "image_size_y": height, "fov": fov},
+        )
 
     def _handle(self, name: str, payload: Any) -> Any:
         if self.scenario is None and name not in ("restart", "apply_restart"):
@@ -316,6 +391,16 @@ class SceneEditor:
         elif name in ("restart", "apply_restart"):
             if name == "apply_restart":
                 new_cfg = edited_config(self.cfg, payload or {})
+                if new_cfg["carla"]["map"] not in self.available_maps:
+                    raise ValueError(f"map {new_cfg['carla']['map']} is not installed on the CARLA server")
+                if new_cfg["carla"]["map"] == self.cfg["carla"]["map"]:
+                    j1 = new_cfg["regional"].get("junction_1_id")
+                    j2 = new_cfg["regional"].get("junction_2_id")
+                    if j1 is not None and not any(
+                        candidate.first.junction_id == j1 and candidate.second.junction_id == j2
+                        for candidate in self.pair_candidates
+                    ):
+                        raise ValueError(f"J1 #{j1} → J2 #{j2} is not a connected straight route")
                 # Validate, then write an atomic standalone draft. Never touch the source YAML.
                 self.draft.parent.mkdir(parents=True, exist_ok=True)
                 temporary = self.draft.with_name(self.draft.name + ".tmp")
@@ -330,12 +415,26 @@ class SceneEditor:
                 self._cleanup(final=False)
                 raise
         elif name == "place":
-            if not isinstance(payload, dict) or payload.get("target") not in ("rsu", "uav"):
-                raise ValueError("choose rsu or uav before clicking the map")
+            if not isinstance(payload, dict) or payload.get("target") not in ("rsu", "uav", "ego"):
+                raise ValueError("choose an editor placement tool before clicking the map")
             width = int(self.camera.attributes["image_size_x"])
             height = int(self.camera.attributes["image_size_y"])
             u = finite_number(payload.get("u"), "image u", 0, width)
             v = finite_number(payload.get("v"), "image v", 0, height)
+            if payload["target"] == "ego":
+                point = pixel_to_ground(
+                    (u, v), np.asarray(self.camera.get_transform().get_matrix()),
+                    width, height, float(self.camera.attributes["fov"]),
+                    float(self.corridor.first.center[2]),
+                )
+                length = float(self.cfg["regional"].get("ego_route_tail_m", 180)) + 300
+                route = extend_route_straight(self.corridor.corridor_waypoints, length)
+                xyz = [[wp.transform.location.x, wp.transform.location.y,
+                        wp.transform.location.z] for wp in route]
+                distance, error = nearest_route_distance(point, xyz)
+                if error > 8.0 or distance > 300.0:
+                    raise ValueError("Ego start must lie near the selected legal route, within 300 m of its start")
+                return {"advance_m": round(distance, 2), "lateral_error_m": round(error, 2)}
             center = (self.corridor.first.center if payload["target"] == "rsu" else
                       self.corridor.second.center)
             return offsets_for_pixel(
@@ -418,6 +517,9 @@ class SceneEditor:
         grid = layout["grid"]
         selected = next((item for item in grid if item["name"] == center_name), grid[len(grid) // 2])
         ranges = _sensor_range_summary(self.cfg, self.corridor, grid)
+        map_junctions = self._project([item.center for item in self.junction_infos])
+        names = {item.junction_id: f"路口 {i + 1}"
+                 for i, item in enumerate(self.junction_infos)}
         state = {
             "status": "running" if self.playing else "paused",
             "playing": self.playing,
@@ -428,6 +530,18 @@ class SceneEditor:
             "image_version": frame,
             "actors": actors, "routes": route_uv, "trails": self.trails,
             "lights": lights, "sensor_ranges": ranges,
+            "map_junctions": [
+                {"id": item.junction_id, "name": names[item.junction_id], "uv": uv,
+                 "world_xyz": list(item.center)}
+                for item, uv in zip(self.junction_infos, map_junctions)
+            ],
+            "connected_pairs": [
+                {"first": item.first.junction_id, "second": item.second.junction_id,
+                 "name": f"{names[item.first.junction_id]} → {names[item.second.junction_id]}"}
+                for item in self.pair_candidates
+            ],
+            "available_maps": self.available_maps,
+            "agent_roles": list(region.get("agent_sensors", {"regional_ego": "ego_lidar", "regional_car3": "cav2_lidar"})),
             "junctions": self._project([self.corridor.first.center, self.corridor.second.center]),
             "junction_distance_m": float(np.linalg.norm(
                 np.asarray(self.corridor.first.center[:2]) -
@@ -438,6 +552,10 @@ class SceneEditor:
             "grid": [{"name": item["name"], "uv": uv} for item, uv in zip(
                 grid, self._project([entry["location"] for entry in grid]))],
             "config": {
+                "map_name": str(self.cfg["carla"]["map"]),
+                "junction_1_id": self.corridor.first.junction_id,
+                "junction_2_id": self.corridor.second.junction_id,
+                "ego_start_advance_m": float(region.get("ego_start_advance_m", 0)),
                 "ego_speed_difference_pct": float(region.get("ego_speed_difference_pct", 0)),
                 "car3_speed_difference_pct": float(region.get("car3_speed_difference_pct", 0)),
                 "car3_start_before_junction_m": float(region["car3_start_before_junction_m"]),
