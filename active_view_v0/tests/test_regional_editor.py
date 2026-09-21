@@ -7,7 +7,7 @@ import numpy as np
 
 from active_view_v0.bev_render import project_world_to_camera
 from active_view_v0.config import load_config
-from active_view_v0.regional_editor import edited_config, pixel_to_ground
+from active_view_v0.regional_editor import edited_config, nearest_route_distance, pixel_to_ground
 
 
 CONFIG = Path(__file__).resolve().parents[1] / "configs" / "dense_dynamic_town03_40s.yaml"
@@ -34,6 +34,24 @@ class RegionalEditorTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported route"):
             edited_config(cfg, {"support_vehicles": [{"role": "regional_extra_1",
                                                         "route": "sidewalk", "start_offset_m": 10}]})
+
+    def test_map_pair_and_ego_start_are_isolated_in_draft(self) -> None:
+        cfg = load_config(CONFIG)
+        updated = edited_config(cfg, {"map_name": "Town07", "junction_1_id": 7,
+                                      "junction_2_id": 9, "ego_start_advance_m": 52})
+        self.assertEqual(updated["carla"]["map"], "Town07")
+        self.assertEqual(updated["regional"]["junction_1_id"], 7)
+        self.assertEqual(updated["regional"]["junction_2_id"], 9)
+        self.assertEqual(updated["regional"]["ego_start_advance_m"], 52)
+        self.assertEqual(cfg["carla"]["map"], "Town03")
+        with self.assertRaisesRegex(ValueError, "select both J1 and J2"):
+            edited_config(cfg, {"junction_1_id": 7})
+
+    def test_ego_click_snaps_to_route_distance(self) -> None:
+        distance, lateral = nearest_route_distance([17, 2], [[0, 0, 0], [10, 0, 0],
+                                                                 [20, 0, 0]])
+        self.assertAlmostEqual(distance, 17)
+        self.assertAlmostEqual(lateral, 2)
 
     def test_pixel_projection_round_trip(self) -> None:
         transform = np.eye(4)
