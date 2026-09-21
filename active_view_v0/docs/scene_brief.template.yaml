@@ -1,0 +1,52 @@
+# Fill this with the intended behavior. This is a design contract, NOT an
+# executable regional_collector config. Null means "confirm on CARLA map".
+schema_version: 1
+scene_id: example_town03_j1_j2_v01
+status: draft            # draft | approved | validated
+map: Town03
+seed: 42
+coordinates:
+  world: CARLA_xyz_m       # explicit world coordinates after clicking editor
+  driving: vehicle_forward_right_m
+  evaluation: ego_moving   # ROI always follows Ego unless specified otherwise
+junctions:
+  J1: {junction_id: null, center_world_xy_m: null}
+  J2: {junction_id: null, center_world_xy_m: null}
+ego:
+  role: regional_ego
+  start: {before_junction: J1, distance_m: null, lane_direction: toward_J2}
+  route: [{junction: J1, maneuver: straight}, {junction: J2, maneuver: straight}]
+  speed_difference_pct: 0
+  checkpoints:
+    - {time_s: 0, expected_position: before_J1, min_progress_m: null}
+    - {time_s: 20, expected_position: between_J1_and_J2, min_progress_m: null}
+agents:
+  ground: [{role: regional_ego, sensor: ego_lidar}, {role: regional_car3, sensor: cav2_lidar}]
+  rsu: [{role: rsu_1, anchor: J1, offset_forward_m: null, offset_right_m: null}]
+  drone: {count: 1, altitude_m: null, initial_anchor: J2, policy_baselines: [hover, tracking, patrol]}
+traffic_groups:
+  - name: j2_cross
+    kind: ordinary_target
+    lane_direction: west_to_east
+    count: null
+    initial_offsets_before_junction_m: []
+    speed_difference_pct: null
+    all_move_by_s: null
+    occluder_role: null
+signals:
+  - {junction: J1, time_s: [0, 40], ego_direction: green, opposite: null, transverse: red}
+  - {junction: J2, time_s: [0, 20], along_corridor: red, transverse: green}
+  - {junction: J2, time_s: [20, 40], along_corridor: green, transverse: red}
+clock: {warmup_s: 2, duration_s: 40, sensor_interval_s: 0.1, decision_interval_s: 1.0}
+perception:
+  roi_forward_m: [-100, 100]
+  roi_right_m: [-60, 60]
+  gt_classes: [car, pedestrian, two_wheeler]
+  evaluated_agents: [ego_lidar, cav2_lidar, rsu_lidar, drone]
+acceptance:
+  minimum_targets_per_frame: null
+  minimum_ego_displacement_m: null
+  required_moving_groups: []
+  visual_checkpoint_times_s: [0, 10, 20, 30]
+  model_metrics: [AP30, AP50, recall50]
+notes: "List intended blind spots, conflicts, and forbidden behavior explicitly."
