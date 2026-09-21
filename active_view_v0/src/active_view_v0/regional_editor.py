@@ -30,6 +30,7 @@ from .regional_layout import build_regional_layout
 from .regional_preview import _sensor_range_summary
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
+from .weather import weather_parameters
 
 
 ALLOWED_ROUTES = {
@@ -307,6 +308,7 @@ class SceneEditor:
         settings.fixed_delta_seconds = float(cc["fixed_delta_seconds"])
         settings.no_rendering_mode = False
         self.world.apply_settings(settings)
+        self.world.set_weather(weather_parameters(config, carla))
         self.traffic_manager = self.client.get_trafficmanager(int(cc["traffic_manager_port"]))
         self.traffic_manager.set_synchronous_mode(True)
         self.traffic_manager.set_random_device_seed(int(cc["seed"]))
