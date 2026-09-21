@@ -22,6 +22,8 @@ Copy `docs/scene_brief.template.yaml` to `docs/scenes/<scene_id>.brief.yaml` and
 
 The assistant restates this contract in a compact table, sketches the timeline or marks the annotated image, and flags only unresolved **material** contradictions. Once the user approves the design or requests direct implementation with enough detail, implement, validate and push without repeating approval questions. Save the final brief and a runnable versioned YAML to the same Git branch. An arbitrary map click or screen pixel is **not** a proven legal CARLA route.
 
+The web editor writes a `*.editor.yaml` draft only. Once its lane routes, lights and checkpoints pass, promote that draft to a **new** versioned `configs/<scene_id>.yaml`, change the brief to `approved`/`validated` only after the corresponding checks, and commit both files. The next scene must start from that committed version, not from an untracked UI draft.
+
 ## 2. Minimal config set and ownership
 
 | File | Committed? | Sole responsibility |
