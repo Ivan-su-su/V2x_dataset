@@ -1,0 +1,8 @@
+# Save synchronized sensor streams, fixed UAV candidates and a BEV video.
+profile: offline_counterfactual
+overrides:
+  regional:
+    save_overhead_rgb: true
+    annotated_bev:
+      enabled: true
+      make_video: true
