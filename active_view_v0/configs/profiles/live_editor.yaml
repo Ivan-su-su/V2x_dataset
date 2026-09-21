@@ -1,0 +1,7 @@
+# Rendering/interactive editing, not a detector-ready recording.
+profile: live_editor
+overrides:
+  regional:
+    annotated_bev:
+      enabled: false
+      make_video: false
