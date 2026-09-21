@@ -1,0 +1,49 @@
+# Retrospective contract of the current reference YAML, not a newly verified run.
+# Confirm actual junction IDs, traffic lights and motion in CARLA before promotion.
+schema_version: 1
+scene_id: dense_dynamic_town03_40s_v14
+status: draft
+source_config: configs/dense_dynamic_town03_40s.yaml
+map: Town03
+seed: 42
+coordinates: {world: CARLA_xyz_m, driving: vehicle_forward_right_m, evaluation: ego_moving}
+junctions:
+  J1: {junction_id: null, selection: corridor_rank_0, center_world_xy_m: null}
+  J2: {junction_id: null, selection: same_connected_pair, center_world_xy_m: null}
+ego:
+  role: regional_ego
+  start: {from: corridor_route_start, advance_m: 0}
+  route: [{junction: J1, maneuver: straight}, {junction: J2, maneuver: straight}]
+  speed_difference_pct: 0
+  checkpoints:
+    - {time_s: 0, expected_position: before_J1}
+    - {time_s: 20, expected_position: moving_toward_J2}
+agents:
+  ground: [{role: regional_ego, sensor: ego_lidar}, {role: regional_car3, sensor: cav2_lidar}]
+  rsu: [{role: rsu_1, anchor: J1, offset_forward_m: 0, offset_right_m: -18, height_m: 7}]
+  drone: {count: 1, altitude_m: 40, initial_candidate: uav_r2_c2, policy_baselines: [hover, tracking, patrol]}
+traffic_groups:
+  - {name: j2_cross, route: j2_cross, planned_count: 5, includes_moving_blocker: true}
+  - {name: j2_reverse, route: j2_cross_reverse, planned_count: 6}
+  - {name: j1_cross, route: j1_cross, planned_count: 3}
+  - {name: corridor_forward, route: corridor_forward, planned_count: 6, includes_moving_blocker: true}
+  - {name: corridor_rear, route: corridor_behind_ego, planned_count: 2}
+  - {name: corridor_oncoming, route: corridor_oncoming, planned_count: 9}
+  - {name: randomized_background, planned_count: 10}
+signals:
+  - {junction: J1, time_s: [0, 40], ego_direction: green, opposite: unconfirmed, transverse: red}
+  - {junction: J2, time_s: [0, 20], along_corridor: red, transverse: green}
+  - {junction: J2, time_s: [20, 40], along_corridor: green, transverse: red}
+clock: {warmup_s: 2, duration_s: 40, sensor_interval_s: 0.1, saved_frames: 400, decision_interval_s: 1}
+perception:
+  roi_forward_m: [-100, 100]
+  roi_right_m: [-60, 60]
+  gt_classes: [car, pedestrian, two_wheeler]
+  base_sensors: [ego_lidar, cav2_lidar, rsu_lidar]
+acceptance:
+  minimum_targets_per_frame: 18
+  minimum_mean_targets: 22
+  minimum_ego_displacement_m: 70
+  visual_checkpoint_times_s: [0, 10, 20, 30, 39.9]
+  detector_metrics: [AP30, AP50, recall50]
+notes: "J1 opposite light and all observed motions must be checked on the current commit before this brief is approved."
