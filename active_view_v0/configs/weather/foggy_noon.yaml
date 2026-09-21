@@ -1,0 +1,6 @@
+carla:
+  weather:
+    preset: CloudyNoon
+    overrides:
+      fog_density: 60.0
+      fog_distance: 0.0
