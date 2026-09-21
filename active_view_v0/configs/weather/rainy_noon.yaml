@@ -1,0 +1,4 @@
+carla:
+  weather:
+    preset: HardRainNoon
+    overrides: {}
