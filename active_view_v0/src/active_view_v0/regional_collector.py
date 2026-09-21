@@ -11,6 +11,7 @@ import numpy as np
 from .bev_render import annotate_rgb_snapshot
 from .collector import _class_name, _save_measurements, _write_json
 from .config import dump_effective_config, load_config
+from .weather import weather_parameters
 from .corridors import select_connected_junctions
 from .geometry import carla_matrix, points_in_regional_roi, transform_points, transform_record
 from .regional_layout import build_regional_layout
@@ -85,7 +86,7 @@ def collect_regional(
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
         traffic_manager.set_random_device_seed(int(carla_cfg["seed"]))
-        world.set_weather(carla.WeatherParameters.ClearNoon)
+        world.set_weather(weather_parameters(cfg, carla))
 
         scenario = RegionalIntersectionScenario(client, world, traffic_manager, cfg, corridor)
         scenario.setup()
