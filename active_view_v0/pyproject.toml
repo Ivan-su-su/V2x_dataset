@@ -15,6 +15,9 @@ dependencies = [
   "imageio-ffmpeg>=0.4.9",
 ]
 
+[project.scripts]
+activeview = "active_view_v0.dataset_cli:main"
+
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
 editor = ["Pillow>=9.0"]

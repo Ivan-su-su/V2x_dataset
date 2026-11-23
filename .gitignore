@@ -19,3 +19,6 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+
+# Local ActiveView data and runtime outputs
+/datasets/

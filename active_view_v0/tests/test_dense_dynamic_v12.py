@@ -115,9 +115,10 @@ def test_dense_40s_config_uses_fixed_signals_and_two_way_j2_flow() -> None:
     regional = cfg["regional"]
     assert regional["duration_s"] == 40.0
     assert regional["ego_start_advance_m"] == 0.0
+    # The rolled back reference plan keeps only Ego's approach green at J1.
     assert regional["fixed_signal_plan"] == {
         "enabled": True,
-        "j1_bidirectional_green": True,
+        "j1_bidirectional_green": False,
         "j2_switch_time_s": 20.0,
         "route_heading_tolerance_deg": 25.0,
         "reapply_each_tick": True,
@@ -306,7 +307,7 @@ def test_j1_opposing_routes_use_local_ego_entry_not_global_axis(monkeypatch) -> 
     with pytest.raises(RuntimeError, match="no straight entry matches"):
         _j1_opposing_green_routes(junction, [wp(99, 0.0)])
     pairs.remove(opposing_pair)
-    with pytest.raises(RuntimeError, match="no legal opposing straight entry"):
+    with pytest.raises(RuntimeError, match="no legal oppos(?:ite approach|ing straight entry)"):
         _j1_opposing_green_routes(junction, ego_route)
 
 

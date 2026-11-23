@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - codex/fixed-signals-40s
+      - codex/dataset-runtime-framework
   pull_request:
     paths:
       - "active_view_v0/**"

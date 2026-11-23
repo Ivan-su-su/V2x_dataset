@@ -1,0 +1,4 @@
+schema_version: 1
+scene_id: Town03/scene_0001
+family_id: town03_j1_j2
+baseline_yaml: ../../../../configs/dense_dynamic_town03_40s.yaml

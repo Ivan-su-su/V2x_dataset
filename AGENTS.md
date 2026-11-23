@@ -10,3 +10,5 @@ Read `active_view_v0/docs/SCENE_WORKFLOW.md` and the scene's approved brief befo
 6. Keep all approved source YAML, briefs, code and lightweight test assets in GitHub; keep giant datasets, videos, editor drafts and generated YAML out of Git. Push to a branch based on the latest approved scene; don't overwrite the user's unsynced work. Record the commit hash and source config in each run report.
 
 CARLA's current two-junction generator supports lane-connected straight pairs. A UI selection of a map, junction or clicked point does **not** establish that an arbitrary-turn, three-junction, or previously untested map scene can be simulated; implement and validate a new generator before promising it.
+
+For the dataset runtime, follow `active_view_v0/docs/DATASET_RUNTIME.md`: place new scene descriptors and briefs under `active_view_v0/scenes/<Town>/<scene_id>/config/`. Use `activeview validate`, `preview`, `run`, `check-run` and `compare`; keep host paths and run modes outside scene YAML. Preserve the legacy configuration when registering a known scene.
