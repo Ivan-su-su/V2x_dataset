@@ -1,0 +1,118 @@
+schema_version: 1
+scene_id: Town03/scene_0010
+status: approved
+map: Town03
+seed: 42
+coordinates:
+  world: CARLA_xyz_m
+  driving: vehicle_forward_right_m
+  evaluation: ego_moving
+junctions:
+  J1:
+    junction_id: 1135
+    center_world_xyz_m: [236.361, 2.237, 0.0]
+  J2:
+    junction_id: 1352
+    center_world_xyz_m: [230.424, 61.444, 0.041]
+  J3:
+    junction_id: 1038
+    center_world_xyz_m: [168.31, 63.238, 0.075]
+  J4:
+    junction_id: 1427
+    center_world_xyz_m: [98.056, 59.966, 0.0]
+ego:
+  role: regional_ego
+  start_world_xyz_m: [232.862, -51.168, 0.0]
+  route:
+  - junction: 1135
+    distance_along_route_m: 34
+    maneuver: straight_or_lane_curve
+    connector: [1165, -2]
+  - junction: 1352
+    distance_along_route_m: 93
+    maneuver: right
+    connector: [1374, -1]
+  - junction: 1038
+    distance_along_route_m: 153
+    maneuver: straight_or_lane_curve
+    connector: [1050, -1]
+  - junction: 1427
+    distance_along_route_m: 233
+    maneuver: right
+    connector: [1431, -1]
+  - junction: 1427
+    distance_along_route_m: 321
+    maneuver: right
+    connector: [1435, -1]
+  checkpoints:
+  - time_s: 0
+    nominal_world_xyz_m: [232.86, -51.17, 0.0]
+  - time_s: 15
+    nominal_world_xyz_m: [231.29, 13.31, 0.0]
+  - time_s: 30
+    nominal_world_xyz_m: [208.87, 58.79, 0.0]
+  - time_s: 45
+    nominal_world_xyz_m: [144.37, 58.96, 0.0]
+  - time_s: 60
+    nominal_world_xyz_m: [82.51, 48.98, 0.0]
+agents:
+  ground:
+  - role: regional_ego
+    sensor: ego_lidar
+  - role: regional_car3
+    sensor: cav2_lidar
+    start_world_xyz_m: [132.405, 62.486, 0.0]
+    route:
+    - junction: 1038
+      distance_along_route_m: 20
+      maneuver: straight_or_lane_curve
+      connector: [1049, 1]
+    - junction: 1352
+      distance_along_route_m: 80
+      maneuver: left
+      connector: [1382, 1]
+    - junction: 1135
+      distance_along_route_m: 143
+      maneuver: straight_or_lane_curve
+      connector: [1166, 2]
+  rsu:
+    anchor: J1
+    offset_right_m: -13
+    height_m: 7
+  drone:
+    grid_center_world_xy_m: [186.396, 58.847]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+traffic_groups:
+- name: with
+  count: 7
+  junctions: []
+- name: against
+  count: 5
+  junctions: []
+- name: side
+  count: 5
+  junctions: [1038, 1135, 1352]
+signals:
+  mode: native_carla_lane_groups
+  managed_junctions: [1135, 1352, 1038, 1427]
+  green_s: 8
+  yellow_s: 2
+  red_s: 1
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40, 40]
+  lidar_range_m: 80
+acceptance:
+  vehicle_gt_per_frame: [7, 20]
+  required_moving_groups: [regional_ego, regional_car3, with, against, side]
+  visual_checkpoint_times_s: [0, 15, 30, 45, 59.9]
+  model_metrics: [AP30, AP50, recall50]
+notes: Design confirmed. Geometry verified with OpenDRIVE. Live CARLA replay and Where2comm pilot required
+  before collection acceptance.

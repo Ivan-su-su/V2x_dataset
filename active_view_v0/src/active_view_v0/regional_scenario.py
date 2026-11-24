@@ -78,6 +78,8 @@ class RegionalIntersectionScenario:
         self._rng = random.Random(int(cfg["carla"]["seed"]))
         self._fixed_signal_states: dict[int, dict[str, Any]] = {}
         self._traffic_lights_frozen = False
+        self._lane_crossings: dict[str, list[float]] = {}
+        self._native_signal_times: list[tuple[Any, float, float, float]] = []
         self._active_signal_phase = "j2_cross_green"
         self._signal_switch_time_s = float(
             cfg["regional"].get("fixed_signal_plan", {}).get("j2_switch_time_s", 20.0)
@@ -86,6 +88,9 @@ class RegionalIntersectionScenario:
     def setup(self) -> None:
         self._destroy_stale_owned_actors()
         regional = self.cfg["regional"]
+        if regional.get("lane_traffic") is not None:
+            self._setup_lane_traffic(regional["lane_traffic"])
+            return
         corridor_yaw = _route_yaw(self.corridor.corridor_waypoints)
         ego_route_tail_m = float(regional.get("ego_route_tail_m", 180.0))
         ego_start_advance_m = float(regional.get("ego_start_advance_m", 0.0))
@@ -198,6 +203,48 @@ class RegionalIntersectionScenario:
         self._spawn_support_traffic(support_route, corridor_yaw)
         self._spawn_background(int(regional["background_vehicle_count"]))
 
+    def _setup_lane_traffic(self, plan: dict) -> None:
+        from .lane_traffic import resolve_lanes, traffic_manager_path
+
+        carla_map = self.world.get_map()
+        routes = {role: resolve_lanes(carla_map, spec["lanes"])
+                  for role, spec in plan["vehicles"].items()}
+        # Retain CARLA's mutually exclusive native light groups and priorities.
+        # Shorter cycles give transverse approaches a chance in a 60 s clip.
+        junction_ids = set(plan["junction_ids"])
+        for role in self.cfg["regional"]["agent_sensors"]:
+            junction_ids.update(wp.get_junction().id for wp in routes[role] if wp.is_junction)
+        lights = {light.id: light for junction in sorted(junction_ids)
+                  for light in self.world.get_traffic_lights_in_junction(junction)}
+        for light in tuple(lights.values()):
+            lights.update((lamp.id, lamp) for lamp in light.get_group_traffic_lights())
+        cycle = self.cfg["regional"]["native_signal_cycle_s"]
+        self._native_signal_times = [
+            (light, light.get_green_time(), light.get_yellow_time(), light.get_red_time())
+            for light in lights.values()
+        ]
+        for light in lights.values():
+            light.set_green_time(float(cycle["green"]))
+            light.set_yellow_time(float(cycle["yellow"]))
+            light.set_red_time(float(cycle["red"]))
+        self.world.reset_all_traffic_lights()
+        for role, route in routes.items():
+            spec = plan["vehicles"][role]
+            if "junction_id" in spec:
+                crossing = [i for i, wp in enumerate(route)
+                            if wp.is_junction and wp.get_junction().id == spec["junction_id"]]
+                last_in_first_crossing = next(
+                    (i for i, following in zip(crossing, crossing[1:]) if following != i + 1),
+                    crossing[-1] if crossing else len(route) - 1,
+                )
+                if last_in_first_crossing == len(route) - 1:
+                    raise ValueError(f"{role} does not leave its designated junction")
+                p = route[last_in_first_crossing + 1].transform.location
+                self._lane_crossings[role] = [float(p.x), float(p.y), float(p.z)]
+            self._spawn_cav(role, route, speed_difference=0.0, require_path=True,
+                            desired_speed_mps=spec["speed_mps"],
+                            tm_path=traffic_manager_path(route))
+
     @property
     def ego(self) -> Any:
         return self.routes["regional_ego"].actor
@@ -210,6 +257,8 @@ class RegionalIntersectionScenario:
                     "actor_id": int(item.actor.id),
                     "color": item.color,
                     "xyz": [[float(p.x), float(p.y), float(p.z)] for p in item.path],
+                    **({"junction_exit_xyz": self._lane_crossings[role]}
+                       if role in self._lane_crossings else {}),
                 }
                 for role, item in self.routes.items()
             },
@@ -324,6 +373,8 @@ class RegionalIntersectionScenario:
         blueprint_patterns: list[str] | None = None,
         route_commands: list[str] | None = None,
         require_path: bool = False,
+        desired_speed_mps: float | None = None,
+        tm_path: list[Any] | None = None,
     ) -> None:
         import carla
 
@@ -366,7 +417,10 @@ class RegionalIntersectionScenario:
         path = route_locations(route, spacing_m=2.0)
         actor.set_autopilot(True, int(self.cfg["carla"]["traffic_manager_port"]))
         self.tm.auto_lane_change(actor, False)
-        self.tm.vehicle_percentage_speed_difference(actor, float(speed_difference))
+        if desired_speed_mps is None:
+            self.tm.vehicle_percentage_speed_difference(actor, float(speed_difference))
+        else:
+            self.tm.set_desired_speed(actor, float(desired_speed_mps) * 3.6)
         self.tm.distance_to_leading_vehicle(actor, 3.0)
         try:
             if route_commands:
@@ -375,7 +429,7 @@ class RegionalIntersectionScenario:
                 # decisions for J1, J2 and the junctions beyond this clip.
                 self.tm.set_route(actor, list(route_commands))
             else:
-                self.tm.set_path(actor, path[1:])
+                self.tm.set_path(actor, tm_path if tm_path is not None else path[1:])
         except (AttributeError, RuntimeError) as error:
             if require_path:
                 raise RuntimeError(f"TrafficManager could not set the configured route for {role}") from error
@@ -624,6 +678,13 @@ class RegionalIntersectionScenario:
         return output
 
     def release_fixed_signal_plan(self) -> None:
+        if self._native_signal_times:
+            for light, green, yellow, red in self._native_signal_times:
+                light.set_green_time(green)
+                light.set_yellow_time(yellow)
+                light.set_red_time(red)
+            self._native_signal_times.clear()
+            self.world.reset_all_traffic_lights()
         if not self._fixed_signal_states:
             return
         if self._traffic_lights_frozen:

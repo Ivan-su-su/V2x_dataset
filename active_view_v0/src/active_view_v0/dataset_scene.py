@@ -110,7 +110,7 @@ def resolve_scene(scene_id: str, project: Path = PROJECT) -> DatasetScene:
         or baseline.is_relative_to(directory.resolve())
     ):
         raise ValueError("baseline YAML must be relative and inside configs/ or the scene config directory")
-    cfg = {key: value for key, value in load_config(baseline).items()
+    cfg = {key: value for key, value in load_config(baseline, validate=False).items()
            if key not in {"_config_path", "output", "recipe"}}
     overrides = raw.get("overrides", {})
     if not isinstance(overrides, dict) or set(overrides) - {"regional", "scoring", "grid", "sensors", "oracle", "carla"}:

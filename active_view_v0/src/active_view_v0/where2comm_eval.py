@@ -365,6 +365,9 @@ def run_inference(
     limit_candidates: int | None,
 ) -> Path:
     metadata, cfg, frames = _load_run(run_dir)
+    planned_range = cfg["scoring"].get("detector_lidar_range")
+    if planned_range is not None and not np.allclose(runtime.lidar_range, planned_range):
+        raise ValueError("Where2comm checkpoint LiDAR range differs from the scene's validated range")
     candidates = list(metadata["candidate_sensor_names"])
     if base_sensors is None:
         base_sensors = list(cfg["scoring"]["base_sensors"])

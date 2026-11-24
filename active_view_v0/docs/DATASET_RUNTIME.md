@@ -168,3 +168,42 @@ the action application tick. This is a forward smoke test; AP at actual result
 availability, full RGB/depth/segmentation rigs, policy training, and additional
 map/route engines are follow-up work. Do not label an untested Town as approved
 by copying a Town03 scene. Keep hardware validation results separate from unit tests.
+
+## Town03 60 s lane traffic scenes
+
+Town03/scene_0003–scene_0017 use the same 60 s settings in
+`configs/town03_60s.yaml`. The approved routes and traffic are stored in each
+scene's `config/scene.yaml`, as directed OpenDRIVE segments
+`[road_id, lane_id, start_s, end_s]`. CARLA Traffic Manager drives the vehicles
+and obeys the native signal groups; the listed junctions and the sensing
+vehicles’ routes use shorter phase durations. Vehicle counts are checked in the Ego frame
+(`±140.8 m` longitudinal, `±40 m` lateral), with the Where2comm GT class and
+height filter. The vehicle, RSU and UAV LiDAR range stays at 80 m.
+Scenes 0001 and 0002 remain the 40 s reference pair.
+
+Qualify each scene on a dedicated CARLA instance before collecting the grid:
+
+```bash
+activeview run --scene Town03/scene_0007 --mode offline_hover --run-id pilot_60s_001
+activeview check-run /path/to/offline_hover/pilot_60s_001
+```
+
+Qualification requires all 600 frames, 7–20 detector vehicle GTs per frame,
+Ego and Car2 progress on their routes, and a completed crossing by at least
+one designated side vehicle at each configured side approach junction.
+Inspect the reported frame indices and route progress if the run fails.
+Only after it passes, collect the 25 UAV candidate streams with the existing
+collector and use the same check on the full output:
+
+```bash
+python -m active_view_v0.regional_collector --config /path/to/offline_hover/pilot_60s_001/effective_config.yaml --run-name scene_0007_grid_60s_001
+activeview check-run ./datasets/active_view_v0/scene_0007_grid_60s_001
+python -m active_view_v0.where2comm_eval ./datasets/active_view_v0/scene_0007_grid_60s_001
+```
+
+The collector uses the YAML's output root, or `./datasets/active_view_v0` if
+the frozen pilot YAML has no `output`. Use a clean CARLA world and unique run
+names. These configurations default to LiDAR-only capture and disable its
+per-frame RGB, PNG annotation and video. Run `activeview preview --scene …`
+separately to render snapshots. OpenDRIVE and nominal occupancy checks are
+preflight only; the scene briefs are not marked live validated.

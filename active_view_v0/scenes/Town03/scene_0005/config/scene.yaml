@@ -1,63 +1,210 @@
 schema_version: 1
 scene_id: Town03/scene_0005
 family_id: town03_curved_corridor
-baseline_yaml: ../../../../configs/dense_dynamic_town03_40s.yaml
+baseline_yaml: ../../../../configs/town03_60s.yaml
 overrides:
   regional:
     junction_1_id: 655
     junction_2_id: 730
-    ego_j2_connection:
-      road_id: 743
-      lane_id: -2
-    fixed_signal_plan:
-      enabled: false
-    car3_start_before_junction_m: 47.0
-    car3_route_tail_m: 140.0
-    route_exit_distance_m: 42.0
+    uav_grid_offset_forward_m: -23.41
+    uav_grid_offset_right_m: 39.252
     rsu:
-      offset_right_m: -18.0
-    support_vehicles:
-    - role: regional_flow_01
-      route: j2_cross
-      start_offset_m: 15.0
-      speed_difference_pct: 10.0
-    - role: regional_flow_02
-      route: j2_cross
-      start_offset_m: 26.0
-      speed_difference_pct: 9.0
-    - role: regional_flow_03
-      route: j2_cross
-      start_offset_m: 58.0
-      speed_difference_pct: 4.0
-    - role: regional_flow_04
-      route: j2_cross_reverse
-      start_offset_m: 15.0
-      speed_difference_pct: 8.0
-    - role: regional_flow_05
-      route: j2_cross_reverse
-      start_offset_m: 32.0
-      speed_difference_pct: 7.0
-    - role: regional_flow_06
-      route: j2_cross_reverse
-      start_offset_m: 48.0
-      speed_difference_pct: 7.0
-    - role: regional_flow_07
-      route: corridor_forward
-      start_offset_m: 18.0
-      speed_difference_pct: 4.0
-    - role: regional_flow_08
-      route: corridor_forward
-      start_offset_m: 40.0
-      speed_difference_pct: 3.0
-    tracked_roles:
-    - regional_ego
-    - regional_car3
-    - regional_flow_01
-    - regional_flow_04
-  sensors:
-    vehicle_lidar:
-      range: 80.0
-    rsu_lidar:
-      range: 80.0
-    uav_lidar:
-      range: 80.0
+      offset_right_m: -13
+    support_vehicles: []
+    lane_traffic:
+      vehicles:
+        regional_ego:
+          speed_mps: 5.25
+          lanes:
+          - [1, -2, 16.91, 48.91]
+          - [668, -2, 0.0, 32.8]
+          - [2, -2, 2.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 29.47]
+          group: ego
+        regional_car3:
+          speed_mps: 4.75
+          lanes:
+          - [3, 2, 33.98, 1.98]
+          - [742, 2, 26.0, 2.0]
+          - [2, 2, 104.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          - [0, 2, 43.24, 5.24]
+          group: car2
+        regional_with_01:
+          speed_mps: 4.7
+          lanes:
+          - [1, -2, 0.91, 48.91]
+          - [668, -2, 0.0, 32.8]
+          - [2, -2, 2.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 15.47]
+          group: with
+        regional_with_02:
+          speed_mps: 5.21
+          lanes:
+          - [1, -2, 48.91, 48.91]
+          - [668, -2, 0.0, 32.8]
+          - [2, -2, 2.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 37.47]
+          - [4, -2, 0.5, 60.5]
+          group: with
+        regional_with_03:
+          speed_mps: 4.87
+          lanes:
+          - [2, -2, 2.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 37.47]
+          - [4, -2, 0.5, 72.5]
+          group: with
+        regional_with_04:
+          speed_mps: 5.21
+          lanes:
+          - [2, -2, 16.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 37.47]
+          - [4, -2, 0.5, 90.5]
+          - [298, -1, 0.67, 18.67]
+          group: with
+        regional_with_05:
+          speed_mps: 4.7
+          lanes:
+          - [2, -2, 26.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 37.47]
+          - [4, -2, 0.5, 84.5]
+          group: with
+        regional_with_06:
+          speed_mps: 5.21
+          lanes:
+          - [2, -2, 52.0, 104.0]
+          - [743, -2, 0.0, 26.0]
+          - [3, -2, 1.98, 113.98]
+          - [875, -2, 1.47, 37.47]
+          - [4, -2, 0.5, 90.5]
+          - [298, -1, 0.67, 24.67]
+          - [69, 3, 49.9157, 19.9157]
+          group: with
+        regional_against_01:
+          speed_mps: 4.55
+          lanes:
+          - [3, 2, 111.98, 1.98]
+          - [742, 2, 26.0, 2.0]
+          - [2, 2, 104.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          group: against
+        regional_against_02:
+          speed_mps: 4.949999999999999
+          lanes:
+          - [3, 2, 89.98, 1.98]
+          - [742, 2, 26.0, 2.0]
+          - [2, 2, 104.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          - [0, 2, 43.24, 1.24]
+          - [510, 1, 25.2622, 21.2622]
+          group: against
+        regional_against_03:
+          speed_mps: 5.1499999999999995
+          lanes:
+          - [3, 2, 23.98, 1.98]
+          - [742, 2, 26.0, 2.0]
+          - [2, 2, 104.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          - [0, 2, 43.24, 1.24]
+          - [510, 1, 25.2622, 1.2622]
+          - [65, -1, 0.7378, 62.7378]
+          group: against
+        regional_against_04:
+          speed_mps: 4.75
+          lanes:
+          - [2, 2, 64.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          - [0, 2, 43.24, 1.24]
+          - [510, 1, 25.2622, 1.2622]
+          - [65, -1, 0.7378, 126.7378]
+          group: against
+        regional_against_05:
+          speed_mps: 4.6000000000000005
+          lanes:
+          - [3, 2, 45.98, 1.98]
+          - [742, 2, 26.0, 2.0]
+          - [2, 2, 104.39, 0.39]
+          - [667, 2, 31.19, 1.19]
+          - [1, 2, 50.1, 0.1]
+          - [588, 2, 23.83, 1.83]
+          - [0, 2, 43.24, 1.24]
+          - [510, 1, 25.2622, 3.2622]
+          group: against
+        regional_side_01:
+          speed_mps: 3.9
+          lanes:
+          - [29, -1, 17.23, 33.23]
+          - [713, -1, 0.0, 29.3342]
+          - [2, -1, 2.0, 104.0]
+          - [743, -1, 1.61, 25.61]
+          - [3, -1, 1.59, 111.59]
+          group: side
+          junction_id: 655
+        regional_side_02:
+          speed_mps: 3.5
+          lanes:
+          - [29, -1, 3.23, 33.23]
+          - [713, -1, 0.0, 29.3342]
+          - [2, -1, 2.0, 104.0]
+          - [743, -1, 1.61, 25.61]
+          - [3, -1, 1.59, 69.59]
+          group: side
+          junction_id: 655
+        regional_side_03:
+          speed_mps: 4.3
+          lanes:
+          - [28, -1, 73.27, 77.27]
+          - [1334, -1, 0.34, 24.34]
+          - [29, -1, 1.23, 33.23]
+          - [713, -1, 0.0, 29.3342]
+          - [2, -1, 2.0, 104.0]
+          - [743, -1, 1.61, 25.61]
+          - [3, -1, 1.59, 91.59]
+          group: side
+          junction_id: 655
+        regional_side_04:
+          speed_mps: 4.3
+          lanes:
+          - [19, -1, 1.73, 49.73]
+          - [853, -1, 0.0, 34.0]
+          - [20, -1, 2.0, 156.0]
+          - [1829, -1, 1.92, 17.92]
+          - [21, -1, 1.8, 29.8]
+          - [1909, -1, 0.58, 36.58]
+          group: side
+          junction_id: 730
+        regional_side_05:
+          speed_mps: 4.3
+          lanes:
+          - [61, -1, 3.69, 19.69]
+          - [1017, -1, 0.0, 32.64]
+          - [62, -1, 2.0, 36.0]
+          - [1846, -1, 0.97, 16.97]
+          - [20, 1, 155.4304, 1.4304]
+          - [852, 1, 33.9204, 1.9204]
+          - [19, 1, 51.6504, 13.6504]
+          group: side
+          junction_id: 861
+      junction_ids: [655, 730, 861]

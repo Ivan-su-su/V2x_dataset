@@ -176,6 +176,7 @@ def test_fixed_signal_plan_freezes_once_and_restores_controller() -> None:
     scenario = RegionalIntersectionScenario.__new__(RegionalIntersectionScenario)
     scenario.world = world
     scenario._traffic_lights_frozen = False
+    scenario._native_signal_times = []
     scenario._active_signal_phase = "j2_cross_green"
     scenario._signal_switch_time_s = 20.0
     scenario._fixed_signal_states = {

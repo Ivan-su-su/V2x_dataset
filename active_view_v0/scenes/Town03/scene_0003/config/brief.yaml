@@ -1,115 +1,115 @@
 schema_version: 1
 scene_id: Town03/scene_0003
-status: draft
+status: approved
 map: Town03
 seed: 42
 coordinates:
   world: CARLA_xyz_m
+  driving: vehicle_forward_right_m
   evaluation: ego_moving
 junctions:
   J1:
     junction_id: 103
-    center_world_xy_m:
-    - 1.104
-    - 133.719
+    center_world_xyz_m: [1.104, 133.719, 0.0]
   J2:
     junction_id: 238
-    center_world_xy_m:
-    - -79.604
-    - 133.635
+    center_world_xyz_m: [-79.604, 133.635, 0.031]
+  J3:
+    junction_id: 1669
+    center_world_xyz_m: [-148.827, 103.773, 0.0]
 ego:
   role: regional_ego
-  start:
-    before_junction: J1
-    distance_m: 30
-  world_direction: +X to -X along approach, through J2 toward -X
+  start_world_xyz_m: [55.19, 130.305, 0.0]
   route:
-  - junction: J1
-    maneuver: follow_corridor
-  - junction: J2
-    maneuver: straight
-    road_id: 316
-    lane_id: 1
+  - junction: 103
+    distance_along_route_m: 34
+    maneuver: straight_or_lane_curve
+    connector: [144, 1]
+  - junction: 238
+    distance_along_route_m: 116
+    maneuver: straight_or_lane_curve
+    connector: [316, 1]
+  - junction: 1669
+    distance_along_route_m: 211
+    maneuver: straight_or_lane_curve
+    connector: [1678, 1]
+  - junction: 1901
+    distance_along_route_m: 247
+    maneuver: straight_or_lane_curve
+    connector: [1908, 1]
+  - junction: 1820
+    distance_along_route_m: 317
+    maneuver: straight_or_lane_curve
+    connector: [1828, 1]
   checkpoints:
-  - time_s: 0.0
-    expected_position: approach J1
-  - time_s: 39.9
-    expected_position: on the declared J2 exit or downstream
+  - time_s: 0
+    nominal_world_xyz_m: [55.19, 130.3, 0.0]
+  - time_s: 15
+    nominal_world_xyz_m: [-9.3, 130.72, 0.0]
+  - time_s: 30
+    nominal_world_xyz_m: [-73.79, 132.14, 0.0]
+  - time_s: 45
+    nominal_world_xyz_m: [-136.89, 127.7, 0.0]
+  - time_s: 60
+    nominal_world_xyz_m: [-145.54, 65.61, 0.0]
 agents:
   ground:
   - role: regional_ego
     sensor: ego_lidar
   - role: regional_car3
     sensor: cav2_lidar
-    route: j2_cross
-    world_direction: +Y
-    start_before_j2_m: 90
+    start_world_xyz_m: [-149.055, 88.983, 0.0]
+    route:
+    - junction: 1669
+      distance_along_route_m: 4
+      maneuver: straight_or_lane_curve
+      connector: [1679, -1]
+    - junction: 238
+      distance_along_route_m: 89
+      maneuver: straight_or_lane_curve
+      connector: [317, -1]
+    - junction: 103
+      distance_along_route_m: 167
+      maneuver: straight_or_lane_curve
+      connector: [139, -1]
   rsu:
     anchor: J1
-    offset_forward_m: 0
-    offset_right_m: -18
+    offset_right_m: -13
     height_m: 7
   drone:
-    anchor: J2
-    offset_forward_m: -8
-    offset_right_m: 0
-    height_m: 40
+    grid_center_world_xy_m: [-97.075, 132.666]
     initial_candidate: uav_r2_c2
-    grid:
-    - 5
-    - 5
-    spacing_m: 15
+    height_m: 40
 traffic_groups:
-- name: reference_traffic
-  config: configs/dense_dynamic_town03_40s.yaml
-  includes_moving_blocker: true
+- name: with
+  count: 7
+  junctions: []
+- name: against
+  count: 5
+  junctions: []
+- name: side
+  count: 5
+  junctions: [103, 238]
 signals:
-- junction: J1
-  time_s:
-  - 0
-  - 40
-  ego_direction: green
-  transverse: red
-- junction: J2
-  time_s:
-  - 0
-  - 20
-  along_corridor: red
-  transverse: green
-- junction: J2
-  time_s:
-  - 20
-  - 40
-  along_corridor: green
-  transverse: red
+  mode: native_carla_lane_groups
+  managed_junctions: [103, 238, 1669]
+  green_s: 8
+  yellow_s: 2
+  red_s: 1
 clock:
-  warmup_s: 2
-  duration_s: 40
+  warmup_s: 2.0
+  duration_s: 60.0
   sensor_interval_s: 0.1
-  saved_frames: 400
-  decision_interval_s: 1
+  saved_frames: 600
+  decision_interval_s: 1.0
 perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40, 40]
   lidar_range_m: 80
-  roi_forward_m:
-  - -100
-  - 100
-  roi_right_m:
-  - -60
-  - 60
 acceptance:
-  visual_checkpoint_times_s:
-  - 0.0
-  - 10.0
-  - 20.0
-  - 30.0
-  - 39.9
-  required_moving_groups:
-  - regional_ego
-  - regional_car3
-  - j2_cross_reverse
-  model_metrics:
-  - AP30
-  - AP50
-  - recall50
-notes: reference CAV2 passes and leaves J2; keep the original 20 s signal switch;
-  confirm live map, actor motion and RSU placement before collection
+  vehicle_gt_per_frame: [7, 20]
+  required_moving_groups: [regional_ego, regional_car3, with, against, side]
+  visual_checkpoint_times_s: [0, 15, 30, 45, 59.9]
+  model_metrics: [AP30, AP50, recall50]
+notes: Design confirmed. Geometry verified with OpenDRIVE. Live CARLA replay and Where2comm pilot required
+  before collection acceptance.

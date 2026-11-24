@@ -103,13 +103,14 @@ def _deep_update(base: dict[str, Any], override: dict[str, Any]) -> dict[str, An
     return base
 
 
-def load_config(path: str | Path) -> dict[str, Any]:
+def load_config(path: str | Path, *, validate: bool = True) -> dict[str, Any]:
     path = Path(path).expanduser().resolve()
     with path.open("r", encoding="utf-8") as handle:
         user = yaml.safe_load(handle) or {}
     cfg = _deep_update(copy.deepcopy(DEFAULTS), user)
     cfg["_config_path"] = str(path)
-    validate_config(cfg)
+    if validate:
+        validate_config(cfg)
     return cfg
 
 
@@ -174,29 +175,34 @@ def validate_config(cfg: dict[str, Any]) -> None:
                 "grid.keyframe_interval_s must equal the UAV decision interval for "
                 "backward-compatible oracle configuration"
             )
-        roles = [str(item.get("role", "")) for item in regional.get("support_vehicles", [])]
-        if not roles or any(not role for role in roles):
-            raise ValueError("regional.support_vehicles requires non-empty role names")
-        if len(roles) != len(set(roles)):
-            raise ValueError("regional.support_vehicles role names must be unique")
-        if any(float(item.get("start_offset_m", 0.0)) <= 0 for item in regional["support_vehicles"]):
-            raise ValueError("all support-vehicle start offsets must be positive")
-        allowed_routes = {
-            "j1_cross",
-            "j2_cross",
-            "j2_cross_reverse",
-            "corridor_forward",
-            "corridor_behind_ego",
-            "corridor_oncoming",
-        }
-        unknown_routes = sorted(
-            {
-                str(item.get("route", ""))
-                for item in regional["support_vehicles"]
-            }.difference(allowed_routes)
-        )
-        if unknown_routes:
-            raise ValueError(f"unknown regional support-vehicle routes: {unknown_routes}")
+        if regional.get("lane_traffic") is not None:
+            from .lane_traffic import validate_lane_traffic
+
+            validate_lane_traffic(regional)
+        else:
+            roles = [str(item.get("role", "")) for item in regional.get("support_vehicles", [])]
+            if not roles or any(not role for role in roles):
+                raise ValueError("regional.support_vehicles requires non-empty role names")
+            if len(roles) != len(set(roles)):
+                raise ValueError("regional.support_vehicles role names must be unique")
+            if any(float(item.get("start_offset_m", 0.0)) <= 0 for item in regional["support_vehicles"]):
+                raise ValueError("all support-vehicle start offsets must be positive")
+            allowed_routes = {
+                "j1_cross",
+                "j2_cross",
+                "j2_cross_reverse",
+                "corridor_forward",
+                "corridor_behind_ego",
+                "corridor_oncoming",
+            }
+            unknown_routes = sorted(
+                {
+                    str(item.get("route", ""))
+                    for item in regional["support_vehicles"]
+                }.difference(allowed_routes)
+            )
+            if unknown_routes:
+                raise ValueError(f"unknown regional support-vehicle routes: {unknown_routes}")
         validation = regional.get("validation", {})
         early_end = float(validation.get("early_end_s", 14.0))
         late_start = float(validation.get("late_start_s", 16.0))
@@ -221,6 +227,12 @@ def validate_config(cfg: dict[str, Any]) -> None:
         raise ValueError("scoring.ego_roi min/max must contain at least x and y")
     if any(float(lo) >= float(hi) for lo, hi in zip(roi_min[:2], roi_max[:2])):
         raise ValueError("scoring.ego_roi min must be smaller than max")
+    detector_range = cfg["scoring"].get("detector_lidar_range")
+    if detector_range is not None:
+        if (not isinstance(detector_range, list) or len(detector_range) != 6
+                or detector_range[:2] != list(roi_min[:2]) or detector_range[3:5] != list(roi_max[:2])
+                or not detector_range[2] < detector_range[5]):
+            raise ValueError("detector_lidar_range requires six values matching the Ego ROI in XY")
     roi_mode = str(cfg["scoring"].get("roi_mode", "ego_moving"))
     if roi_mode not in {"ego_moving", "regional_fixed"}:
         raise ValueError("scoring.roi_mode must be ego_moving or regional_fixed")

@@ -1,118 +1,107 @@
 schema_version: 1
 scene_id: Town03/scene_0005
-status: draft
+status: approved
 map: Town03
 seed: 42
 coordinates:
   world: CARLA_xyz_m
+  driving: vehicle_forward_right_m
   evaluation: ego_moving
 junctions:
   J1:
     junction_id: 655
-    center_world_xy_m:
-    - 4.332
-    - -199.051
+    center_world_xyz_m: [4.332, -199.051, 0.0]
   J2:
     junction_id: 730
-    center_world_xy_m:
-    - -82.0
-    - -138.0
+    center_world_xyz_m: [-82.358, -138.156, 0.064]
+  J3:
+    junction_id: 861
+    center_world_xyz_m: [-86.482, 9.066, 0.017]
 ego:
   role: regional_ego
-  start:
-    before_junction: J1
-    distance_m: 30
-  world_direction: -X along the first leg, then +Y along the bend and through J2
+  start_world_xyz_m: [54.892, -206.628, 0.0]
   route:
-  - junction: J1
-    maneuver: follow_corridor
-  - junction: J2
-    maneuver: straight
-    road_id: 743
-    lane_id: -2
+  - junction: 655
+    distance_along_route_m: 34
+    maneuver: straight_or_lane_curve
+    connector: [668, -2]
+  - junction: 730
+    distance_along_route_m: 185
+    maneuver: straight_or_lane_curve
+    connector: [743, -2]
+  - junction: 861
+    distance_along_route_m: 327
+    maneuver: straight_or_lane_curve
+    connector: [875, -2]
   checkpoints:
-  - time_s: 0.0
-    expected_position: approach J1
-  - time_s: 39.9
-    expected_position: on the declared J2 exit or downstream
+  - time_s: 0
+    nominal_world_xyz_m: [54.89, -206.63, 0.0]
+  - time_s: 15
+    nominal_world_xyz_m: [-9.59, -208.25, 0.0]
+  - time_s: 30
+    nominal_world_xyz_m: [-72.58, -202.31, 0.0]
+  - time_s: 45
+    nominal_world_xyz_m: [-88.67, -142.59, 0.0]
+  - time_s: 60
+    nominal_world_xyz_m: [-88.58, -78.1, -0.86]
 agents:
   ground:
   - role: regional_ego
     sensor: ego_lidar
   - role: regional_car3
     sensor: cav2_lidar
-    route: j2_cross
-    world_direction: -Y
-    start_before_j2_m: 47
+    start_world_xyz_m: [-78.113, -90.958, -0.72]
+    route:
+    - junction: 730
+      distance_along_route_m: 34
+      maneuver: straight_or_lane_curve
+      connector: [742, 2]
+    - junction: 655
+      distance_along_route_m: 163
+      maneuver: straight_or_lane_curve
+      connector: [667, 2]
+    - junction: 576
+      distance_along_route_m: 247
+      maneuver: straight_or_lane_curve
+      connector: [588, 2]
   rsu:
     anchor: J1
-    offset_forward_m: 0
-    offset_right_m: -18
+    offset_right_m: -13
     height_m: 7
   drone:
-    anchor: J2
-    offset_forward_m: -8
-    offset_right_m: 0
-    height_m: 40
+    grid_center_world_xy_m: [-85.763, -183.732]
     initial_candidate: uav_r2_c2
-    grid:
-    - 5
-    - 5
-    spacing_m: 15
+    height_m: 40
 traffic_groups:
-- name: j2_cross
-  route: j2_cross
-  offsets_m:
-  - 15
-  - 26
-  - 58
-- name: j2_reverse
-  route: j2_cross_reverse
-  offsets_m:
-  - 15
-  - 32
-  - 48
-- name: ego_corridor
-  route: corridor_forward
-  offsets_m:
-  - 18
-  - 40
-- name: background
-  mode: traffic_manager
-  planned_count: 10
+- name: with
+  count: 6
+  junctions: []
+- name: against
+  count: 5
+  junctions: []
+- name: side
+  count: 5
+  junctions: [655, 730, 861]
 signals:
-- junction: J1
-  mode: native_carla
-- junction: J2
-  mode: native_carla
+  mode: native_carla_lane_groups
+  managed_junctions: [655, 730, 861]
+  green_s: 8
+  yellow_s: 2
+  red_s: 1
 clock:
-  warmup_s: 2
-  duration_s: 40
+  warmup_s: 2.0
+  duration_s: 60.0
   sensor_interval_s: 0.1
-  saved_frames: 400
-  decision_interval_s: 1
+  saved_frames: 600
+  decision_interval_s: 1.0
 perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40, 40]
   lidar_range_m: 80
-  roi_forward_m:
-  - -100
-  - 100
-  roi_right_m:
-  - -60
-  - 60
 acceptance:
-  visual_checkpoint_times_s:
-  - 0.0
-  - 10.0
-  - 20.0
-  - 30.0
-  - 39.9
-  required_moving_groups:
-  - regional_ego
-  - regional_car3
-  - j2_cross_reverse
-  model_metrics:
-  - AP30
-  - AP50
-  - recall50
-notes: oncoming traffic at the far end of the bend; confirm live map, actor motion
-  and RSU placement before collection
+  vehicle_gt_per_frame: [7, 20]
+  required_moving_groups: [regional_ego, regional_car3, with, against, side]
+  visual_checkpoint_times_s: [0, 15, 30, 45, 59.9]
+  model_metrics: [AP30, AP50, recall50]
+notes: Design confirmed. Geometry verified with OpenDRIVE. Live CARLA replay and Where2comm pilot required
+  before collection acceptance.

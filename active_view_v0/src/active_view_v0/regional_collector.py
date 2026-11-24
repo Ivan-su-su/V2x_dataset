@@ -82,7 +82,7 @@ def collect_regional(
         settings = world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = float(carla_cfg["fixed_delta_seconds"])
-        settings.no_rendering_mode = False
+        settings.no_rendering_mode = not bool(regional.get("save_overhead_rgb", True))
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
         traffic_manager.set_random_device_seed(int(carla_cfg["seed"]))
@@ -272,6 +272,8 @@ def collect_regional(
                     or ["regional_ego", "regional_car1", "regional_car3"],
                 )
             )
+            if regional.get("lane_traffic"):
+                tracked_roles.update(regional["lane_traffic"]["vehicles"])
             actor_states = scenario.actor_states()
             sensing_agents = {
                 state["role_name"]: state

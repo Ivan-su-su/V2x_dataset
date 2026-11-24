@@ -51,7 +51,7 @@ def _traffic_summary(scene: DatasetScene) -> dict:
             "sources": scene.source_hashes, "map": scene.config["carla"]["map"],
             "frame_count": scene.frame_count, "sample_hz": 1 / scene.dt,
             "decision_hz": 1 / (scene.dt * scene.decision_ticks),
-            "j2_switch_time_s": fixed_plan.get("j2_switch_time_s")}
+            "j2_switch_time_s": fixed_plan.get("j2_switch_time_s") if fixed_plan.get("enabled") else None}
 
 
 def _policy(args) -> Policy:

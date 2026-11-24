@@ -114,10 +114,15 @@ def _trace(path: Path) -> dict[int, dict]:
 def check_run(path: Path) -> dict:
     from .config import load_config
 
+    cfg = load_config(path / "effective_config.yaml")
+    lane_traffic = cfg["regional"].get("lane_traffic")
+    if lane_traffic and (path / "collection_status.json").is_file():
+        from .scene_health import check_regional_lane_capture
+
+        return check_regional_lane_capture(path, cfg)
     manifest = json.loads((path / "run_manifest.json").read_text(encoding="utf-8"))
     if manifest["status"] != "complete":
         raise ValueError("run did not complete")
-    cfg = load_config(path / "effective_config.yaml")
     fixed = cfg["regional"].get("fixed_signal_plan", {})
     dt = float(cfg["carla"]["fixed_delta_seconds"])
     rows = _trace(path)
@@ -143,6 +148,14 @@ def check_run(path: Path) -> dict:
             if expected == "j2_corridor_green" and first_late is None:
                 first_late = row["elapsed_s"]
     summary = manifest["summary"]
+    if lane_traffic and n != manifest["frame_count"]:
+        failures.append("a full 600-frame clip is required to qualify this scene")
+    if lane_traffic and rows and not failures:
+        from .scene_health import lane_scene_health
+
+        meta = json.loads((path / "metadata.json").read_text(encoding="utf-8"))
+        return {"full_scene": True, **summary,
+                **lane_scene_health([rows[i] for i in range(n)], cfg, meta["simulator"]["routes"])}
     if n == manifest["frame_count"] and rows and not failures:
         density = cfg["regional"].get("density_validation", {})
         for metric, setting in (

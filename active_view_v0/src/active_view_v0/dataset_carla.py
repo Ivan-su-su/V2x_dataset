@@ -160,7 +160,7 @@ def start_episode(scene: DatasetScene) -> Iterator[tuple[CarlaEpisode, dict]]:
         settings = world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = scene.dt
-        settings.no_rendering_mode = False
+        settings.no_rendering_mode = bool(cfg["regional"].get("lane_traffic"))
         world.apply_settings(settings)
         target_map = str(carla_cfg["map"])
         if world.get_map().name.rsplit("/", 1)[-1] == target_map:
@@ -192,6 +192,7 @@ def start_episode(scene: DatasetScene) -> Iterator[tuple[CarlaEpisode, dict]]:
             "map": carla_map.name,
             "opendrive_sha256": hashlib.sha256(carla_map.to_opendrive().encode()).hexdigest(),
             "corridor": corridor.as_dict(),
+            **({"routes": scenario.metadata()["routes"]} if regional.get("lane_traffic") else {}),
             "carla_host": host, "carla_port": port, "traffic_manager_port": tm_port,
         }
     finally:
