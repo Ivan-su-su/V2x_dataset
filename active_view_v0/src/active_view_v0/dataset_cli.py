@@ -10,7 +10,9 @@ import json
 import math
 import os
 import platform
+import signal
 import subprocess
+import sys
 import tempfile
 import time
 from contextlib import ExitStack, contextmanager
@@ -145,11 +147,64 @@ def _run(args, scene: DatasetScene, directory: Path) -> dict:
     return status
 
 
+def _carla_output_config(scene: DatasetScene, directory: Path) -> dict:
+    cfg = scene.config["carla"]
+    return {
+        **scene.config,
+        "output": {"root": str(directory.parent), "run_name": directory.name},
+        "carla": {**cfg,
+                  "host": os.environ.get("ACTIVEVIEW_CARLA_HOST", cfg["host"]),
+                  "port": int(os.environ.get("ACTIVEVIEW_CARLA_PORT", cfg["port"])),
+                  "traffic_manager_port": int(os.environ.get("ACTIVEVIEW_TM_PORT", cfg["traffic_manager_port"]))},
+    }
+
+
+def _collect_grid(scene: DatasetScene, directory: Path) -> None:
+    from .regional_pipeline import _collection_is_complete
+
+    if int(scene.config["grid"]["size"]) != 5:
+        raise ValueError("collect-grid requires a 5×5 UAV grid")
+    if (scene.config["dataset"]["uav_initial_world_xyz"] is not None
+            or scene.config["regional"]["uav_modes"].get("initial_candidate", "uav_r2_c2")
+            != "uav_r2_c2"):
+        raise ValueError("collect-grid requires the center UAV starting point")
+    with _exclusive_carla(scene), tempfile.TemporaryDirectory() as tmp:
+        cfg = _carla_output_config(scene, directory)
+        path = Path(tmp) / "collect.yaml"
+        dump_effective_config(cfg, path)
+        result = subprocess.run([sys.executable, "-m", "active_view_v0.regional_collector",
+                                 "--config", str(path), "--reload-world"], check=False)
+        if result.returncode not in (0, -signal.SIGABRT):
+            raise RuntimeError(f"CARLA collector exited with code {result.returncode}: {directory}")
+        status_file = directory / "collection_status.json"
+        if not status_file.is_file() or not _collection_is_complete(directory, cfg, None):
+            raise RuntimeError(f"incomplete grid collection: {directory}")
+        status = json.loads(status_file.read_text(encoding="utf-8"))
+        if status.get("keyframe_count") != scene.frame_count or (
+            status.get("expected_keyframe_count") != scene.frame_count
+        ):
+            raise RuntimeError(f"grid collection did not record {scene.frame_count} frames: {directory}")
+        metadata = json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
+        if set(metadata["candidate_sensor_names"]) != {
+            f"uav_r{row}_c{col}" for row in range(5) for col in range(5)
+        }:
+            raise RuntimeError(f"grid collection is missing candidate sensors: {directory}")
+        if result.returncode:
+            print("WARNING: CARLA aborted during cleanup after recording a complete dataset.",
+                  file=sys.stderr)
+        json_write(directory / "collection_source.json", {
+            **_traffic_summary(scene), "run_id": directory.name,
+            "mode": "counterfactual", "git": _git_version(),
+            "collector_exit_code": result.returncode,
+        })
+    print(directory)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="activeview", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("scenes", help="list registered scene IDs")
-    for name in ("validate", "preview", "run"):
+    for name in ("validate", "preview", "run", "collect-grid"):
         command = commands.add_parser(name)
         source = command.add_mutually_exclusive_group(required=True)
         source.add_argument("--scene", help="registered ID, e.g. Town03/scene_0001")
@@ -190,20 +245,20 @@ def main() -> None:
         if args.command == "validate":
             print(json.dumps(_traffic_summary(scene), indent=2))
             return
-        mode = args.mode if args.command == "run" else "preview"
+        mode = {"preview": "preview", "collect-grid": "counterfactual"}.get(args.command)
+        if mode is None:
+            mode = args.mode
         directory = run_directory(data_root(args.data_root), scene.scene_id, mode, args.run_id)
         if directory.exists():
             raise FileExistsError(f"{directory} already exists; choose a new --run-id")
+        if args.command == "collect-grid":
+            _collect_grid(scene, directory)
+            return
         if args.command == "preview":
             from .regional_preview import preview
             with _exclusive_carla(scene), tempfile.TemporaryDirectory() as tmp:
-                effective = {**scene.config, "output": {"root": str(directory.parent), "run_name": directory.name}}
-                effective["carla"] = {**scene.config["carla"],
-                                      "host": os.environ.get("ACTIVEVIEW_CARLA_HOST", scene.config["carla"]["host"]),
-                                      "port": int(os.environ.get("ACTIVEVIEW_CARLA_PORT", scene.config["carla"]["port"])),
-                                      "traffic_manager_port": int(os.environ.get("ACTIVEVIEW_TM_PORT", scene.config["carla"]["traffic_manager_port"]))}
                 config = Path(tmp) / "preview.yaml"
-                dump_effective_config(effective, config)
+                dump_effective_config(_carla_output_config(scene, directory), config)
                 preview(config)
             print(directory)
             return
