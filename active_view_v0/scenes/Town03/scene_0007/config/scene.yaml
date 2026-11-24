@@ -6,9 +6,6 @@ overrides:
   regional:
     junction_1_id: 1221
     junction_2_id: 356
-    ego_j2_connection:
-      road_id: 383
-      lane_id: 1
     fixed_signal_plan:
       enabled: false
     car3_start_before_junction_m: 42.0

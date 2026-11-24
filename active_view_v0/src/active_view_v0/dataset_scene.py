@@ -41,7 +41,7 @@ def data_root(value: Path | str | None = None) -> Path:
 def run_directory(root: Path, scene_id: str, mode: str, run_id: str) -> Path:
     if not (SCENE_ID.fullmatch(scene_id) and RUN_ID.fullmatch(run_id)):
         raise ValueError("use Town03/scene_0001 and a lowercase run ID (e.g. hover_001)")
-    if mode not in (*MODES, "preview", "counterfactual"):
+    if mode not in (*MODES, "preview"):
         raise ValueError(f"unknown run mode: {mode}")
     return root / scene_id / mode / run_id
 

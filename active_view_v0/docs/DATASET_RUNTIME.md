@@ -128,44 +128,25 @@ interface, not a sandbox for submitted third-party policy code.
    BEV to the parallel `preview/` path using the legacy preview. Repeat for the
    variant and inspect the effect on queues and Ego motion before promotion.
 
-## Town03 25-view capture and detector evaluation
+## Offline Where2comm scene check
 
-Use the registered scene to preview and then collect the same traffic setup.
-Each full pilot is 400 synchronized frames with three ground LiDAR streams and
-25 counterfactual UAV positions. The collector also records the configured
-hover, tracking and patrol streams and annotated overhead BEV. Run previews
-and collections sequentially on a dedicated CARLA instance: collection
-reloads the map, which clears its current actors.
+Use the existing `regional_collector` with a full YAML (for a registered scene,
+`activeview preview` saves one as `effective_config.yaml`). The collector records
+the UAV grid; the single-UAV `offline_hover` mode does not record candidates.
+Set `output.root` in the full YAML to choose the collection directory.
 
 ```bash
-activeview preview --scene Town03/scene_0004 --run-id preview_001
-activeview collect-grid --scene Town03/scene_0004 --run-id grid_001
-RUN_DIR="$ACTIVEVIEW_DATA_ROOT/Town03/scene_0004/counterfactual/grid_001"
+python -m active_view_v0.regional_collector --config /path/to/effective_config.yaml --run-name capture_001
+python -m active_view_v0.where2comm_eval /path/to/capture_001
 ```
 
-Inspect `collection_status.json` and `dataset_health.json`. The BEV video is
-`visualization/global_bev_rgb_annotated.mp4`. Use the Where2comm environment
-for the next commands. Set `MODEL_DIR` to the directory that directly contains
-`config.yaml` and the weights, and `OPENCOOD_ROOT` to the source checkout that
-contains the `opencood` package. From `active_view_v0/`:
-
-```bash
-export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
-python -m active_view_v0.where2comm_eval --run-dir "$RUN_DIR" \
-  --model-dir "$MODEL_DIR" --opencood-root "$OPENCOOD_ROOT" \
-  --device cuda:0 --smoke-test --output-dir "$RUN_DIR/where2comm_smoke"
-
-python -m active_view_v0.where2comm_eval --run-dir "$RUN_DIR" \
-  --model-dir "$MODEL_DIR" --opencood-root "$OPENCOOD_ROOT" \
-  --device cuda:0 --output-dir "$RUN_DIR/where2comm_eval"
-```
-
-The full report compares ground-only, center hover, best fixed position and
-the speed-constrained oracle on the same recorded frames. An oracle uses
-ground truth to pick views, so it is a diagnostic and does not show
-how a deployable UAV policy performs. Keep the smoke-test output separate
-from the full evaluation. Use a new output directory when changing weights or
-evaluation inputs, because the evaluator can reuse cached predictions.
+In the detector environment, make the AirV2X OpenCOOD package importable or pass
+`--opencood-root`. By default the evaluator reads `config.yaml` and the checkpoint
+from the checkout's `active_view_v0/checkpoints/`; use `--model-dir` for another
+location. The Python entry point is `where2comm_eval.evaluate_dataset(dataset_dir)`.
+Reports go to `<dataset>/where2comm_eval/where2comm_report.{txt,json}`. `--smoke-test`
+uses a separate `where2comm_smoke/` directory. Use `--overwrite` when changing the
+checkpoint or inference settings for an existing evaluation.
 
 ## Plugging in inference
 

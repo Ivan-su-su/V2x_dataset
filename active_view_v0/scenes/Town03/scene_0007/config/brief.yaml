@@ -25,7 +25,9 @@ ego:
   world_direction: +X through the uphill connection
   route:
   - junction: J1
-    maneuver: follow_corridor
+    maneuver: straight
+    road_id: 1229
+    lane_id: 1
   - junction: J2
     maneuver: straight
     road_id: 383
@@ -33,6 +35,8 @@ ego:
   checkpoints:
   - time_s: 0.0
     expected_position: approach J1
+  - time_s: 20.0
+    expected_position: on J1–J2 corridor toward J2; no turn toward the roundabout
   - time_s: 39.9
     expected_position: on the declared J2 exit or downstream
 agents:

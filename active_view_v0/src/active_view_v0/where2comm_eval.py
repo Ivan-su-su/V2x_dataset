@@ -5,7 +5,6 @@ import contextlib
 import io
 import json
 import math
-import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -155,20 +154,14 @@ class Where2commRuntime:
     def __init__(
         self,
         *,
-        opencood_root: Path,
+        opencood_root: Path | None,
         config_path: Path,
         checkpoint_path: Path,
         device: str,
         allow_partial_checkpoint: bool = False,
         verbose_model: bool = False,
     ) -> None:
-        opencood_root = opencood_root.expanduser().resolve()
-        if not (opencood_root / "opencood").is_dir():
-            raise FileNotFoundError(
-                f"{opencood_root} does not contain the opencood package; "
-                "pass the root of Ivan-su-su/Airv2x_gs"
-            )
-        sys.path.insert(0, str(opencood_root))
+        _add_opencood_root(opencood_root)
         import torch
         from opencood.data_utils import post_processor
         from opencood.data_utils.pre_processor import build_preprocessor
@@ -364,7 +357,7 @@ def run_inference(
     run_dir: Path,
     runtime: Where2commRuntime,
     output_dir: Path,
-    base_sensors: list[str],
+    base_sensors: list[str] | None,
     ego_sensor: str,
     accepted_classes: list[str],
     overwrite: bool,
@@ -373,6 +366,8 @@ def run_inference(
 ) -> Path:
     metadata, cfg, frames = _load_run(run_dir)
     candidates = list(metadata["candidate_sensor_names"])
+    if base_sensors is None:
+        base_sensors = list(cfg["scoring"]["base_sensors"])
     mode_sensor_names = {
         str(mode): str(sensor_name)
         for mode, sensor_name in metadata.get("uav_mode_sensor_names", {}).items()
@@ -922,6 +917,16 @@ def render_report(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _add_opencood_root(root: Path | None) -> None:
+    if root is None:
+        return
+    root = root.expanduser().resolve()
+    if not (root / "opencood").is_dir():
+        raise FileNotFoundError(f"{root} does not contain the opencood package")
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+
 def resolve_checkpoint(model_dir: Path, explicit: Path | None) -> Path:
     if explicit is not None:
         return explicit.expanduser().resolve()
@@ -946,6 +951,8 @@ def _checkpoint_epoch(path: Path) -> int:
 def _load_run(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any], list[FrameInput]]:
     run_dir = run_dir.expanduser().resolve()
     metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+    if not metadata.get("candidate_sensor_names"):
+        raise ValueError(f"{run_dir} has no UAV candidate streams; use a regional_collector dataset")
     cfg = load_config(run_dir / "effective_config.yaml")
     manifest = [
         json.loads(line)
@@ -1064,19 +1071,100 @@ def _quiet_model(verbose: bool):
             cv2.imwrite = old_imwrite
 
 
+def evaluate_dataset(
+    dataset_dir: str | Path,
+    *,
+    opencood_root: Path | None = None,
+    model_dir: Path | None = None,
+    config: Path | None = None,
+    checkpoint: Path | None = None,
+    device: str = "cuda:0",
+    base_sensors: list[str] | None = None,
+    ego_sensor: str = "ego_lidar",
+    classes: Iterable[str] = ("car", "two_wheeler"),
+    output_dir: Path | None = None,
+    overwrite: bool = False,
+    allow_partial_checkpoint: bool = False,
+    verbose_model: bool = False,
+    limit_frames: int | None = None,
+    limit_candidates: int | None = None,
+    smoke_test: bool = False,
+    movement_penalty_per_m: float = 0.0,
+    utility_fp_penalty: float = 0.05,
+    evaluate_only: bool = False,
+) -> Path:
+    """Evaluate one regional collection and return the JSON report path."""
+    if smoke_test and evaluate_only:
+        raise ValueError("--smoke-test cannot be combined with --evaluate-only")
+    run_dir = Path(dataset_dir).expanduser().resolve()
+    if output_dir is None:
+        output_dir = run_dir / ("where2comm_smoke" if smoke_test else "where2comm_eval")
+    else:
+        output_dir = output_dir.expanduser().resolve()
+
+    if evaluate_only:
+        _add_opencood_root(opencood_root)
+    else:
+        if model_dir is None:
+            model_dir = Path(__file__).resolve().parents[2] / "checkpoints"
+        model_dir = model_dir.expanduser().resolve()
+        config_path = config.expanduser().resolve() if config is not None else model_dir / "config.yaml"
+        if not config_path.is_file():
+            raise FileNotFoundError(
+                f"model config not found: {config_path}; pass --config with the exact training config"
+            )
+        runtime = Where2commRuntime(
+            opencood_root=opencood_root,
+            config_path=config_path,
+            checkpoint_path=resolve_checkpoint(model_dir, checkpoint),
+            device=device,
+            allow_partial_checkpoint=allow_partial_checkpoint,
+            verbose_model=verbose_model,
+        )
+        run_inference(
+            run_dir=run_dir,
+            runtime=runtime,
+            output_dir=output_dir,
+            base_sensors=base_sensors,
+            ego_sensor=ego_sensor,
+            accepted_classes=list(classes),
+            overwrite=overwrite,
+            limit_frames=1 if smoke_test else limit_frames,
+            limit_candidates=1 if smoke_test else limit_candidates,
+        )
+        index_path = output_dir / "prediction_index.json"
+        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+        index_payload["lidar_range"] = runtime.lidar_range.tolist()
+        index_path.write_text(
+            json.dumps(index_payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    report_path = evaluate_cached(
+        run_dir=run_dir,
+        output_dir=output_dir,
+        movement_penalty_per_m=movement_penalty_per_m,
+        utility_fp_penalty=utility_fp_penalty,
+    )
+    if smoke_test:
+        print("SMOKE TEST PASSED")
+        print(f"Result: {report_path}")
+    return report_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run an AirV2X Where2comm checkpoint on Active AirV2X CARLA frames"
     )
-    parser.add_argument("--run-dir", required=True, type=Path)
-    parser.add_argument("--opencood-root", required=True, type=Path)
-    parser.add_argument("--model-dir", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("dataset_dir", nargs="?", type=Path)
+    source.add_argument("--run-dir", type=Path, help="alias for dataset_dir")
+    parser.add_argument("--opencood-root", type=Path)
+    parser.add_argument("--model-dir", type=Path)
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--base-sensors", nargs="+", default=None)
     parser.add_argument("--ego-sensor", default="ego_lidar")
-    parser.add_argument("--classes", nargs="+", default=["car", "two_wheeler"])
+    parser.add_argument("--classes", nargs="+", default=argparse.SUPPRESS)
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--allow-partial-checkpoint", action="store_true")
@@ -1091,79 +1179,10 @@ def main() -> None:
     parser.add_argument("--movement-penalty-per-m", type=float, default=0.0)
     parser.add_argument("--utility-fp-penalty", type=float, default=0.05)
     parser.add_argument("--evaluate-only", action="store_true")
-    args = parser.parse_args()
-
-    if args.smoke_test:
-        if args.evaluate_only:
-            parser.error("--smoke-test cannot be combined with --evaluate-only")
-        args.limit_frames = 1
-        args.limit_candidates = 1
-
-    run_dir = args.run_dir.expanduser().resolve()
-    model_dir = args.model_dir.expanduser().resolve()
-    output_dir = (
-        args.output_dir.expanduser().resolve()
-        if args.output_dir is not None
-        else run_dir / "where2comm_eval"
-    )
-    opencood_root = args.opencood_root.expanduser().resolve()
-    if not (opencood_root / "opencood").is_dir():
-        raise FileNotFoundError(
-            f"{opencood_root} does not contain the opencood package"
-        )
-    if str(opencood_root) not in sys.path:
-        sys.path.insert(0, str(opencood_root))
-    _, cfg, _ = _load_run(run_dir)
-    base_sensors = (
-        list(args.base_sensors)
-        if args.base_sensors is not None
-        else list(cfg["scoring"]["base_sensors"])
-    )
-    if not args.evaluate_only:
-        config_path = (
-            args.config.expanduser().resolve()
-            if args.config is not None
-            else model_dir / "config.yaml"
-        )
-        if not config_path.is_file():
-            raise FileNotFoundError(
-                f"model config not found: {config_path}; pass --config with the exact training config"
-            )
-        checkpoint = resolve_checkpoint(model_dir, args.checkpoint)
-        runtime = Where2commRuntime(
-            opencood_root=opencood_root,
-            config_path=config_path,
-            checkpoint_path=checkpoint,
-            device=args.device,
-            allow_partial_checkpoint=args.allow_partial_checkpoint,
-            verbose_model=args.verbose_model,
-        )
-        run_inference(
-            run_dir=run_dir,
-            runtime=runtime,
-            output_dir=output_dir,
-            base_sensors=base_sensors,
-            ego_sensor=args.ego_sensor,
-            accepted_classes=list(args.classes),
-            overwrite=args.overwrite,
-            limit_frames=args.limit_frames,
-            limit_candidates=args.limit_candidates,
-        )
-        index_path = output_dir / "prediction_index.json"
-        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
-        index_payload["lidar_range"] = runtime.lidar_range.tolist()
-        index_path.write_text(
-            json.dumps(index_payload, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    report_path = evaluate_cached(
-        run_dir=run_dir,
-        output_dir=output_dir,
-        movement_penalty_per_m=args.movement_penalty_per_m,
-        utility_fp_penalty=args.utility_fp_penalty,
-    )
-    if args.smoke_test:
-        print("SMOKE TEST PASSED")
-        print(f"Result: {report_path}")
+    args = vars(parser.parse_args())
+    dataset_dir = args.pop("dataset_dir")
+    run_dir = args.pop("run_dir")
+    evaluate_dataset(dataset_dir or run_dir, **args)
 
 
 if __name__ == "__main__":

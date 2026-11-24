@@ -26,7 +26,6 @@ def collect_regional(
     overwrite: bool = False,
     duration_s: float | None = None,
     run_name: str | None = None,
-    reload_world: bool = False,
 ) -> Path:
     """Collect a synchronized regional counterfactual-view pilot."""
     import carla
@@ -52,8 +51,6 @@ def collect_regional(
     if not world.get_map().name.endswith(target_map):
         print(f"Loading {target_map}; current actors will be cleared by CARLA.")
         world = client.load_world(target_map)
-    elif reload_world:
-        world = client.reload_world()
 
     run_dir = Path(cfg["output"]["root"]).expanduser() / str(cfg["output"]["run_name"])
     if run_dir.exists():
@@ -771,14 +768,12 @@ def main() -> None:
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--duration-s", type=float, default=None)
     parser.add_argument("--run-name", default=None)
-    parser.add_argument("--reload-world", action="store_true", help="reload the map before spawning the scene")
     args = parser.parse_args()
     collect_regional(
         args.config,
         overwrite=args.overwrite,
         duration_s=args.duration_s,
         run_name=args.run_name,
-        reload_world=args.reload_world,
     )
 
 
