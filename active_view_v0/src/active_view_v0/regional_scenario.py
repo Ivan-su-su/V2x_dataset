@@ -6,7 +6,9 @@ from typing import Any
 
 import numpy as np
 
-from .corridors import ConnectedJunctions, cross_route, extend_route_straight, route_locations
+from .corridors import (
+    ConnectedJunctions, cross_route, extend_route_straight, route_locations, route_through_j2,
+)
 from .junctions import waypoint_after, waypoint_before
 
 
@@ -96,10 +98,16 @@ class RegionalIntersectionScenario:
 
         # 先向前多生成 advance 米，再裁掉开头 advance 米。
         # 这样 Ego 起点和终点一起前移，路线长度基本保持不变。
-        ego_full_route = extend_route_straight(
-            self.corridor.corridor_waypoints,
-            ego_route_tail_m + ego_start_advance_m,
-        )
+        j2_connection = regional.get("ego_j2_connection")
+        if j2_connection is None:
+            ego_full_route = extend_route_straight(
+                self.corridor.corridor_waypoints,
+                ego_route_tail_m + ego_start_advance_m,
+            )
+        else:
+            ego_full_route = route_through_j2(
+                self.corridor, **j2_connection, tail_m=ego_route_tail_m + ego_start_advance_m
+            )
 
         ego_route = ego_full_route
         if ego_start_advance_m > 0.0:
@@ -172,7 +180,8 @@ class RegionalIntersectionScenario:
             "regional_ego",
             ego_route,
             speed_difference=float(regional.get("ego_speed_difference_pct", 35.0)),
-            route_commands=ego_route_commands,
+            route_commands=ego_route_commands if j2_connection is None else None,
+            require_path=j2_connection is not None,
         )
         if car1_enabled:
             assert car1_route is not None
@@ -314,6 +323,7 @@ class RegionalIntersectionScenario:
         required: bool = True,
         blueprint_patterns: list[str] | None = None,
         route_commands: list[str] | None = None,
+        require_path: bool = False,
     ) -> None:
         import carla
 
@@ -367,6 +377,8 @@ class RegionalIntersectionScenario:
             else:
                 self.tm.set_path(actor, path[1:])
         except (AttributeError, RuntimeError) as error:
+            if require_path:
+                raise RuntimeError(f"TrafficManager could not set the configured route for {role}") from error
             if route_commands:
                 print(f"WARNING: TrafficManager.set_route failed for {role}: {error}")
                 print("         Falling back to the imported waypoint path.")

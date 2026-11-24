@@ -139,6 +139,16 @@ def validate_config(cfg: dict[str, Any]) -> None:
         raise ValueError("regional.duration_s must cover at least one keyframe")
     if "regional" in cfg:
         regional = cfg["regional"]
+        j2_connection = regional.get("ego_j2_connection")
+        if j2_connection is not None and (
+            not isinstance(j2_connection, dict)
+            or set(j2_connection) != {"road_id", "lane_id"}
+            or type(j2_connection["road_id"]) is not int
+            or type(j2_connection["lane_id"]) is not int
+            or j2_connection["road_id"] < 0
+            or j2_connection["lane_id"] == 0
+        ):
+            raise ValueError("regional.ego_j2_connection needs a road_id and a nonzero lane_id")
         if float(regional.get("ego_start_advance_m", 0.0)) < 0.0:
             raise ValueError("regional.ego_start_advance_m cannot be negative")
         collection_dt = float(regional.get("collection_interval_s", key_dt))

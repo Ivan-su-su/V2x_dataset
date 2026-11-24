@@ -260,6 +260,47 @@ def extend_route_straight(
     return _deduplicate_waypoints(tuple(output))
 
 
+def route_through_j2(
+    corridor: ConnectedJunctions, road_id: int, lane_id: int, tail_m: float
+) -> list[Any]:
+    """Follow the configured J2 connector, checking the directed approach lane."""
+    # Ranked corridors end at an automatically selected exit. Keep the
+    # original approach and use the requested connector instead of that exit.
+    approach = list(corridor.corridor_waypoints[:-1])
+    while (
+        approach
+        and approach[-1].is_junction
+        and approach[-1].get_junction().id == corridor.second.junction_id
+    ):
+        approach.pop()
+    if not approach:
+        raise ValueError("J2 route has no incoming lane")
+    incoming = approach[-1]
+    lane_key = lambda wp: (wp.road_id, wp.lane_id)
+    matches = [
+        (entry, exit_wp)
+        for entry, exit_wp in corridor.second.junction.get_waypoints(_driving_lane_type())
+        if lane_key(entry) == (road_id, lane_id)
+        and entry.transform.location.distance(incoming.transform.location) < 10
+        and any(lane_key(wp) == lane_key(incoming) for wp in entry.previous(4.0))
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"J2 {corridor.second.junction_id}: connector {road_id}/{lane_id} "
+            f"does not uniquely match Ego's incoming lane {lane_key(incoming)}"
+        )
+    entry, exit_wp = matches[0]
+    curve = [entry]
+    remaining = abs(exit_wp.s - entry.s)
+    while remaining > 2.01:
+        options = [wp for wp in curve[-1].next(2.0) if lane_key(wp) == (road_id, lane_id)]
+        if len(options) != 1:
+            raise ValueError(f"unable to trace J2 connector {road_id}/{lane_id}")
+        curve.append(options[0])
+        remaining -= 2.0
+    return extend_route_straight([*approach, *curve, exit_wp], tail_m)
+
+
 def route_locations(route: list[Any] | tuple[Any, ...], spacing_m: float = 2.0) -> list[Any]:
     """Return a dense CARLA Location path suitable for TrafficManager.set_path."""
     if len(route) < 2:

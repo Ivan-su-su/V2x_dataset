@@ -1,0 +1,118 @@
+schema_version: 1
+scene_id: Town03/scene_0007
+status: draft
+map: Town03
+seed: 42
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+  J1:
+    junction_id: 1221
+    center_world_xy_m:
+    - 2.888
+    - -136.459
+  J2:
+    junction_id: 356
+    center_world_xy_m:
+    - 83.474
+    - -134.734
+ego:
+  role: regional_ego
+  start:
+    before_junction: J1
+    distance_m: 30
+  world_direction: +X through the uphill connection
+  route:
+  - junction: J1
+    maneuver: follow_corridor
+  - junction: J2
+    maneuver: straight
+    road_id: 383
+    lane_id: 1
+  checkpoints:
+  - time_s: 0.0
+    expected_position: approach J1
+  - time_s: 39.9
+    expected_position: on the declared J2 exit or downstream
+agents:
+  ground:
+  - role: regional_ego
+    sensor: ego_lidar
+  - role: regional_car3
+    sensor: cav2_lidar
+    route: j2_cross
+    world_direction: -Y
+    start_before_j2_m: 42
+  rsu:
+    anchor: J1
+    offset_forward_m: 0
+    offset_right_m: 18
+    height_m: 7
+  drone:
+    anchor: J2
+    offset_forward_m: -8
+    offset_right_m: 0
+    height_m: 40
+    initial_candidate: uav_r2_c2
+    grid:
+    - 5
+    - 5
+    spacing_m: 15
+traffic_groups:
+- name: j2_cross
+  route: j2_cross
+  offsets_m:
+  - 15
+  - 26
+  - 58
+- name: j2_reverse
+  route: j2_cross_reverse
+  offsets_m:
+  - 15
+  - 32
+  - 48
+- name: ego_corridor
+  route: corridor_forward
+  offsets_m:
+  - 18
+  - 40
+- name: background
+  mode: traffic_manager
+  planned_count: 10
+signals:
+- junction: J1
+  mode: native_carla
+- junction: J2
+  mode: native_carla
+clock:
+  warmup_s: 2
+  duration_s: 40
+  sensor_interval_s: 0.1
+  saved_frames: 400
+  decision_interval_s: 1
+perception:
+  lidar_range_m: 80
+  roi_forward_m:
+  - -100
+  - 100
+  roi_right_m:
+  - -60
+  - 60
+acceptance:
+  visual_checkpoint_times_s:
+  - 0.0
+  - 10.0
+  - 20.0
+  - 30.0
+  - 39.9
+  required_moving_groups:
+  - regional_ego
+  - regional_car3
+  - j2_cross_reverse
+  model_metrics:
+  - AP30
+  - AP50
+  - recall50
+notes: upper J2 is about 8 m above J1; inspect ground coverage and checkpoint z crop
+  separately; confirm live map, actor motion and RSU placement before collection

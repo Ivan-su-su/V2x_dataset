@@ -49,6 +49,8 @@ def run_directory(root: Path, scene_id: str, mode: str, run_id: str) -> Path:
 def _overlay(base: dict, updates: dict, prefix: str = "") -> None:
     for key, value in updates.items():
         path = f"{prefix}.{key}" if prefix else key
+        if path == "regional.ego_j2_connection" and key not in base:
+            base[key] = None
         if key not in base:
             raise ValueError(f"unknown scene field: {path}")
         if isinstance(base[key], dict):
