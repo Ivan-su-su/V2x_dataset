@@ -45,24 +45,24 @@ collaborator_car2:
 agents:
   rsu_world_xyz_m: [-62.0, 333.0, 7.0]
   uav:
-    grid_center_world_xyz_m: [-14.482, 313.787, 0.0]
+    grid_center_world_xyz_m: [0.031, 303.454, 0.0]
     initial_candidate: uav_r2_c2
     height_m: 40
     step_count_A_to_B: 4
     event_viewpoints:
       A:
-        id: uav_r2_c0
+        id: uav_r1_c0
         ground_area_xy_m: [-14.0, 286.0]
         target_roles: [regional_side_01, regional_side_02, regional_side_03]
         nominal_window_s: [9, 17]
       B:
-        id: uav_r4_c2
+        id: uav_r4_c1
         ground_area_xy_m: [30.0, 289.0]
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
         nominal_window_s: [18, 27]
     service_junction_id: 134
-    placement: J1 的 Y 形分叉口上方
-    initial_world_xyz_m: [-14.482, 313.787, 40.0]
+    placement: J1 的 Y 形分叉口开口上方，沿道路向图左上移约 18 米
+    initial_world_xyz_m: [0.031, 303.454, 40.0]
   rsu_site:
     service_junction_id: 134
     pole_base_world_xyz_m: [-62.0, 333.0, 0.0]

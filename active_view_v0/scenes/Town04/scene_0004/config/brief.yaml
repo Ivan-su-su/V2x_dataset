@@ -60,7 +60,7 @@ collaborator_car2:
 agents:
   rsu_world_xyz_m: [207.91, -158.31, 7.02]
   uav:
-    grid_center_world_xyz_m: [256.591, -170.534, 0.108]
+    grid_center_world_xyz_m: [244.591, -170.55, 0.2]
     initial_candidate: uav_r2_c2
     height_m: 40
     step_count_A_to_B: 6
@@ -76,8 +76,8 @@ agents:
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
         nominal_window_s: [26, 47]
     service_junction_id: 785
-    placement: J2 上方
-    initial_world_xyz_m: [256.591, -170.534, 40.108]
+    placement: J2 朝 J1 的出口一侧上方，沿连接道路距 J2 约 12 米
+    initial_world_xyz_m: [244.591, -170.55, 40.2]
   rsu_site:
     service_junction_id: 1452
     pole_base_world_xyz_m: [207.91, -158.31, 0.02]
