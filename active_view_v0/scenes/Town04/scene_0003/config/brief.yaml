@@ -35,47 +35,59 @@ ego:
     road_lane: [732, -1]
     station_m: 281.1
 collaborator_car2:
-  start_world_xyz_m: [266.82, -246.289, 0.004]
+  start_world_xyz_m: [219.821, -245.965, 0.004]
   speed_mps: 5.0
-  route_length_m: 348.7
+  route_length_m: 395.7
   junction_path:
+  - junction_id: 53
+    road_lane: [109, 1]
+    station_m: 27.0
   - junction_id: 335
     road_lane: [457, 1]
-    station_m: 37.5
+    station_m: 84.5
   - junction_id: 1249
     road_lane: [1297, 1]
-    station_m: 146.0
+    station_m: 193.0
   - junction_id: 870
     road_lane: [880, 1]
-    station_m: 161.2
+    station_m: 208.2
   - junction_id: 483
     road_lane: [510, 1]
-    station_m: 177.7
+    station_m: 224.7
   - junction_id: 459
     road_lane: [467, 1]
-    station_m: 193.0
+    station_m: 240.0
   - junction_id: 335
     road_lane: [350, 1]
-    station_m: 250.0
+    station_m: 297.0
+  start_note: 从图下方 J2 另一侧沿 r27 直行，经 J2 接回原 r26 路线。
 agents:
-  rsu_world_xyz_m: [319.0, -226.0, 7.0]
+  rsu_world_xyz_m: [249.38, -234.68, 7.02]
   uav:
-    grid_center_world_xyz_m: [292.333, -227.758, 0.0]
+    grid_center_world_xyz_m: [313.445, -248.369, 0.004]
     initial_candidate: uav_r2_c2
     height_m: 40
-    step_count_A_to_B: 6
+    step_count_A_to_B: 4
     event_viewpoints:
       A:
-        id: uav_r4_c3
+        id: uav_r2_c4
         ground_area_xy_m: [314.846, -209.207]
         target_roles: [regional_side_01, regional_side_02, regional_side_03]
         nominal_window_s: [8, 22]
       B:
-        id: uav_r0_c1
+        id: uav_r0_c2
         ground_area_xy_m: [269.82, -246.31]
         target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
           regional_side_09, regional_side_10]
         nominal_window_s: [26, 47]
+    service_junction_id: 335
+    placement: J1 上方
+    initial_world_xyz_m: [313.445, -248.369, 40.004]
+  rsu_site:
+    service_junction_id: 53
+    pole_base_world_xyz_m: [249.38, -234.68, 0.02]
+    sensor_height_m: 7.0
+    placement: J2 另一侧路缘设施带
 traffic:
   target_count: 43
   cohort_A: 3

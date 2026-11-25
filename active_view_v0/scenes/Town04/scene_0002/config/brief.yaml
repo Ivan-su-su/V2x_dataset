@@ -52,24 +52,32 @@ collaborator_car2:
     road_lane: [275, 1]
     station_m: 141.1
 agents:
-  rsu_world_xyz_m: [238.0, -322.0, 7.0]
+  rsu_world_xyz_m: [264.38, -234.68, 7.02]
   uav:
-    grid_center_world_xyz_m: [279.579, -287.274, 0.0]
+    grid_center_world_xyz_m: [257.163, -306.538, 0.012]
     initial_candidate: uav_r2_c2
     height_m: 40
-    step_count_A_to_B: 6
+    step_count_A_to_B: 4
     event_viewpoints:
       A:
-        id: uav_r0_c3
+        id: uav_r2_c4
         ground_area_xy_m: [258.751, -274.588]
         target_roles: [regional_side_01, regional_side_02, regional_side_03]
         nominal_window_s: [8, 22]
       B:
-        id: uav_r4_c1
+        id: uav_r4_c2
         ground_area_xy_m: [300.406, -299.96]
         target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
           regional_side_09]
         nominal_window_s: [26, 47]
+    service_junction_id: 278
+    placement: J1 上方
+    initial_world_xyz_m: [257.163, -306.538, 40.012]
+  rsu_site:
+    service_junction_id: 53
+    pole_base_world_xyz_m: [264.38, -234.68, 0.02]
+    sensor_height_m: 7.0
+    placement: J2 路缘设施带
 traffic:
   target_count: 21
   cohort_A: 3

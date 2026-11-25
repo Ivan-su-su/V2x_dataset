@@ -37,7 +37,7 @@ collaborator_car2:
     road_lane: [1401, -2]
     station_m: 328.0
 agents:
-  rsu_world_xyz_m: [-77.0, -4.0, 16.8]
+  rsu_world_xyz_m: [-27.0, -69.0, 7.0]
   uav:
     grid_center_world_xyz_m: [-76.132, -12.126, 9.8]
     initial_candidate: uav_r2_c2
@@ -54,6 +54,14 @@ agents:
         ground_area_xy_m: [-119.173, -37.201]
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
         nominal_window_s: [26, 47]
+    service_junction_id: 1176
+    placement: 保留原上层匝道无人机位置
+    initial_world_xyz_m: [-76.132, -12.126, 49.8]
+  rsu_site:
+    service_junction_id: 764
+    pole_base_world_xyz_m: [-27.0, -69.0, 0.0]
+    sensor_height_m: 7.0
+    placement: J2 下层匝道侧路缘外，服务 Ego 下匝道后的车流
 traffic:
   target_count: 30
   cohort_A: 3
@@ -66,7 +74,7 @@ traffic:
     in preview
   early: Car2 维持桥面直行；先看高架分流鼻前在队列中被遮住的目标。
   late: Ego 走 r33 顺弯下坡，下一批沿匝道接近；观察点转向弯中外侧。
-  validation_note: 分层与坡度先做模型适配检查；不以另一层目标数量抬高 GT。
+  validation_note: 分层与坡度先做模型适配检查；不以另一层目标数量抬高 GT。 RSU 在 J2 下层，主要服务 Ego 下匝道后的车流；需实景核查护栏、坡体和桥面遮挡。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

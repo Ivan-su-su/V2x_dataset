@@ -52,24 +52,32 @@ collaborator_car2:
     road_lane: [267, -2]
     station_m: 369.7
 agents:
-  rsu_world_xyz_m: [33.0, -195.0, 7.0]
+  rsu_world_xyz_m: [21.41, -165.17, 7.196]
   uav:
-    grid_center_world_xyz_m: [33.065, -149.227, 0.0]
+    grid_center_world_xyz_m: [61.295, -175.463, 0.115]
     initial_candidate: uav_r2_c2
     height_m: 40
     step_count_A_to_B: 6
     event_viewpoints:
       A:
-        id: uav_r1_c4
+        id: uav_r0_c4
         ground_area_xy_m: [7.959, -122.2]
         target_roles: [regional_side_01, regional_side_02, regional_side_03, regional_side_04, regional_side_05,
           regional_side_06, regional_side_07]
-        nominal_window_s: [8, 22]
+        nominal_window_s: [8, 18]
       B:
-        id: uav_r3_c0
-        ground_area_xy_m: [58.17, -176.255]
+        id: uav_r2_c0
+        ground_area_xy_m: [59.0, -195.0]
         target_roles: [regional_side_08, regional_side_09, regional_side_10]
-        nominal_window_s: [26, 47]
+        nominal_window_s: [23, 30]
+    service_junction_id: 1197
+    placement: J2 上方，先向图下方补盲再返回图上方
+    initial_world_xyz_m: [61.295, -175.463, 40.115]
+  rsu_site:
+    service_junction_id: 890
+    pole_base_world_xyz_m: [21.41, -165.17, 0.196]
+    sensor_height_m: 7.0
+    placement: J1 与城区接入匝道之间的路缘外
 traffic:
   target_count: 31
   cohort_A: 7
@@ -82,7 +90,7 @@ traffic:
     in preview
   early: 从西侧主路出口接城区时，Car2 沿主路直行提供短时补充。
   late: Car2 离去，城区侧来车在入口外聚集后流走，UAV 换到城区侧。
-  validation_note: 利用协作车离开造成的覆盖变化；不忽略信号或强制车道跳转。
+  validation_note: 利用协作车离开造成的覆盖变化；不忽略信号或强制车道跳转。 无人机从 J2 出发，预期前段向图下方补盲，后段回到图上方；限速轨迹是否胜过全序列最佳固定点待测。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

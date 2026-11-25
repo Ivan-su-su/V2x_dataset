@@ -66,34 +66,42 @@ collaborator_car2:
 agents:
   rsu_world_xyz_m: [371.0, -152.0, 7.0]
   uav:
-    grid_center_world_xyz_m: [372.593, -145.119, 0.0]
+    grid_center_world_xyz_m: [382.0, -6.0, 0.0]
     initial_candidate: uav_r2_c2
     height_m: 40
     step_count_A_to_B: 6
     event_viewpoints:
       A:
-        id: uav_r1_c0
-        ground_area_xy_m: [356.694, -168.626]
-        target_roles: [regional_side_01, regional_side_02, regional_side_03]
-        nominal_window_s: [8, 22]
+        id: uav_r2_c0
+        ground_area_xy_m: [385.0, -47.0]
+        target_roles: [regional_against_01, regional_against_02, regional_against_03]
+        nominal_window_s: [10, 22]
       B:
-        id: uav_r3_c4
-        ground_area_xy_m: [388.492, -121.612]
-        target_roles: [regional_side_04, regional_side_05, regional_side_06]
-        nominal_window_s: [26, 47]
+        id: uav_r0_c4
+        ground_area_xy_m: [350.0, 15.0]
+        target_roles: [regional_with_04, regional_with_05, regional_with_06, regional_with_13]
+        nominal_window_s: [27, 42]
+    service_junction_id: 1593
+    placement: J1593 外环右上弯的 Ego 行驶车道上方
+    initial_world_xyz_m: [382.0, -6.0, 40.0]
+  rsu_site:
+    service_junction_id: 850
+    pole_base_world_xyz_m: [371.0, -152.0, 0.0]
+    sensor_height_m: 7.0
+    placement: 现有 J1 出口侧杆位
 traffic:
   target_count: 23
   cohort_A: 3
-  cohort_B: 3
+  cohort_B: 4
   groups:
     with: 13
     side: 6
     against: 4
   control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
     in preview
-  early: 城区车辆经 r14 进环线，同时 Car2 从出口离开。
-  late: 第二批换成环线外侧车道下游的新车，观察合入后遮挡变化。
-  validation_note: 区别于 09：Ego 留环线，交织时群体也从入口切到同向下游。
+  early: 外环右上弯前保留原来车流；先看同向进弯方向附近的第一批现有车辆。
+  late: Ego 转到外环长直道后，补看弯后下游下一批车；远离弯道后需要量化覆盖退出。
+  validation_note: 用转弯前后轨迹确认新网格作用窗口，尤其检查 40 秒后到片尾；无人机移到弯道不保证覆盖 Ego 后半段。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

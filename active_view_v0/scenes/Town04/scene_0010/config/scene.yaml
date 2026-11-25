@@ -8,7 +8,7 @@ overrides:
     junction_2_id: 745
     lane_traffic:
       layout:
-        grid_center_world_xyz: [372.593, -145.119, 0.0]
+        grid_center_world_xyz: [382.0, -6.0, 0.0]
         rsu_world_xyz: [371.0, -152.0, 7.0]
       junction_ids: [745, 850]
       vehicles:
@@ -97,6 +97,7 @@ overrides:
           - [1091, -2, 0.02, 61.52]
           - [39, -2, 0.96, 6.96]
           group: with
+          cohort: B
         regional_with_05:
           speed_mps: 8.94
           lanes:
@@ -110,6 +111,7 @@ overrides:
           - [1091, -2, 0.02, 61.52]
           - [39, -2, 0.96, 15.96]
           group: with
+          cohort: B
         regional_with_06:
           speed_mps: 7.84
           lanes:
@@ -122,6 +124,7 @@ overrides:
           - [38, -2, 1.21, 244.21]
           - [1091, -2, 0.02, 28.52]
           group: with
+          cohort: B
         regional_with_07:
           speed_mps: 8.94
           lanes:
@@ -224,7 +227,6 @@ overrides:
           - [1, 1, 82.8336, 42.3336]
           group: side
           junction_id: 850
-          cohort: A
         regional_side_02:
           speed_mps: 7.62
           lanes:
@@ -253,7 +255,6 @@ overrides:
           - [1, 1, 82.8336, 72.3336]
           group: side
           junction_id: 850
-          cohort: A
         regional_side_03:
           speed_mps: 6.54
           lanes:
@@ -277,7 +278,6 @@ overrides:
           - [467, 1, 51.3536, 6.3536]
           group: side
           junction_id: 850
-          cohort: A
         regional_side_04:
           speed_mps: 8.55
           lanes:
@@ -290,7 +290,6 @@ overrides:
           - [38, -2, 1.36, 226.36]
           group: side
           junction_id: 850
-          cohort: B
         regional_side_05:
           speed_mps: 8.55
           lanes:
@@ -303,7 +302,6 @@ overrides:
           - [38, -2, 1.36, 241.36]
           group: side
           junction_id: 850
-          cohort: B
         regional_side_06:
           speed_mps: 6.54
           lanes:
@@ -316,7 +314,6 @@ overrides:
           - [38, -2, 1.36, 125.86]
           group: side
           junction_id: 850
-          cohort: B
         regional_against_01:
           speed_mps: 4.75
           lanes:
@@ -326,6 +323,7 @@ overrides:
           - [1602, -4, 1.401, 40.401]
           - [38, -4, 0.831, 213.831]
           group: against
+          cohort: A
         regional_against_02:
           speed_mps: 4.75
           lanes:
@@ -335,6 +333,7 @@ overrides:
           - [1602, -4, 1.401, 40.401]
           - [38, -4, 0.831, 225.831]
           group: against
+          cohort: A
         regional_against_03:
           speed_mps: 4.75
           lanes:
@@ -344,6 +343,7 @@ overrides:
           - [1602, -4, 1.401, 40.401]
           - [38, -4, 0.831, 239.331]
           group: against
+          cohort: A
         regional_with_13:
           speed_mps: 4.75
           lanes:
@@ -353,6 +353,7 @@ overrides:
           - [1602, -1, 0.35, 40.85]
           - [38, -1, 1.28, 187.28]
           group: with
+          cohort: B
         regional_against_04:
           speed_mps: 8.3
           lanes:

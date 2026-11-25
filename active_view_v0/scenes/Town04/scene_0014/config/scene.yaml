@@ -8,7 +8,7 @@ overrides:
     junction_2_id: 764
     lane_traffic:
       layout:
-        grid_center_world_xyz: [17.903, 80.892, 0.0]
+        grid_center_world_xyz: [8.5, -8.0, 0.0]
         rsu_world_xyz: [29.0, 97.0, 7.0]
       junction_ids: [764, 1061]
       vehicles:
@@ -161,7 +161,7 @@ overrides:
           - [7, -1, 0.7673, 8.2673]
           group: side
           junction_id: 1061
-          cohort: A
+          cohort: B
         regional_side_02:
           speed_mps: 6.54
           lanes:
@@ -175,7 +175,7 @@ overrides:
           - [7, -1, 0.7673, 21.7673]
           group: side
           junction_id: 1061
-          cohort: A
+          cohort: B
         regional_side_03:
           speed_mps: 6.54
           lanes:
@@ -190,7 +190,7 @@ overrides:
           - [1232, -1, 0.4273, 19.9273]
           group: side
           junction_id: 1061
-          cohort: A
+          cohort: B
         regional_side_04:
           speed_mps: 6.54
           lanes:
@@ -203,7 +203,7 @@ overrides:
           - [46, 3, 137.12, 27.62]
           group: side
           junction_id: 1061
-          cohort: B
+          cohort: A
         regional_side_05:
           speed_mps: 6.54
           lanes:
@@ -216,7 +216,7 @@ overrides:
           - [46, 3, 137.12, 15.62]
           group: side
           junction_id: 1061
-          cohort: B
+          cohort: A
         regional_side_06:
           speed_mps: 6.54
           lanes:
@@ -228,7 +228,7 @@ overrides:
           - [144, 3, 70.66, 61.66]
           group: side
           junction_id: 1061
-          cohort: B
+          cohort: A
         regional_with_08:
           speed_mps: 8.3
           lanes:

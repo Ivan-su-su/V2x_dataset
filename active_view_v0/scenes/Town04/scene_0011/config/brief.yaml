@@ -32,34 +32,52 @@ ego:
     road_lane: [267, -2]
     station_m: 559.1
 collaborator_car2:
-  start_world_xyz_m: [-9.244, -46.372, 0.0]
+  start_world_xyz_m: [26.527, -325.006, 0.0]
   speed_mps: 8.5
-  route_length_m: 578.8
+  route_length_m: 865.6
   junction_path:
+  - junction_id: 1159
+    road_lane: [1174, 4]
+    station_m: 33.7
+  - junction_id: 890
+    road_lane: [902, 4]
+    station_m: 150.9
+  - junction_id: 764
+    road_lane: [775, 4]
+    station_m: 234.9
   - junction_id: 1061
     road_lane: [1073, 4]
-    station_m: 114.0
+    station_m: 400.9
   - junction_id: 134
     road_lane: [144, 4]
-    station_m: 324.3
+    station_m: 611.2
+  start_note: 从图左侧沿湖大弯 r50 的合法同向车道进入，名义约 30 秒到 J2；真实车流和到达帧待实测。
 agents:
   rsu_world_xyz_m: [27.0, -17.0, 7.0]
   uav:
-    grid_center_world_xyz_m: [-0.293, 2.088, 0.0]
+    grid_center_world_xyz_m: [-0.478, -72.906, 0.001]
     initial_candidate: uav_r2_c2
     height_m: 40
-    step_count_A_to_B: 4
+    step_count_A_to_B: 6
     event_viewpoints:
       A:
-        id: uav_r2_c4
-        ground_area_xy_m: [8.617, 40.048]
-        target_roles: [regional_with_11, regional_with_12, regional_with_13]
-        nominal_window_s: [8, 22]
-      B:
-        id: uav_r2_c0
-        ground_area_xy_m: [-9.202, -35.872]
+        id: uav_r1_c0
+        ground_area_xy_m: [-9.0, -105.0]
         target_roles: [regional_against_02, regional_against_03, regional_against_04]
-        nominal_window_s: [26, 47]
+        nominal_window_s: [10, 19]
+      B:
+        id: uav_r3_c4
+        ground_area_xy_m: [8.0, -27.0]
+        target_roles: [regional_with_11, regional_with_12, regional_with_13]
+        nominal_window_s: [21, 30]
+    service_junction_id: 764
+    placement: J2 下层交汇区上方
+    initial_world_xyz_m: [-0.478, -72.906, 40.001]
+  rsu_site:
+    service_junction_id: null
+    pole_base_world_xyz_m: [27.0, -17.0, 0.0]
+    sensor_height_m: 7.0
+    placement: 桥口东侧原杆位，离 J2 无人机起点较远
 traffic:
   target_count: 27
   cohort_A: 3
@@ -69,9 +87,9 @@ traffic:
     against: 6
   control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
     in preview
-  early: Ego 与 Car2 都在 r47 下层；先补桥前同层被遮挡的车辆。
-  late: 另一侧独立车批接近桥口时，UAV 换至桥后观察；灰带示意桥面投影。
-  validation_note: 同一层才计入主评测；实测桥投影及两侧点云，A/B 都看不到就淘汰。
+  early: 先看 J2 上游沿湖来车，此时 CAV2 仍在弯道至 J2 的来车段。
+  late: Ego 接近 J2 以及下层桥区时，复查同层后一批车和 CAV2 到达造成的覆盖换班。
+  validation_note: 验证桥体遮挡与实际 CAV2 到达帧；此处用名义车速定位观察窗口，假设需实采判断。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

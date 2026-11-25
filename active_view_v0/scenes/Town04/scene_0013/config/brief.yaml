@@ -43,23 +43,31 @@ collaborator_car2:
     road_lane: [779, 2]
     station_m: 428.4
 agents:
-  rsu_world_xyz_m: [101.0, -15.0, 17.7]
+  rsu_world_xyz_m: [-107.0, -1.0, 16.335]
   uav:
     grid_center_world_xyz_m: [77.794, -2.128, 11.0]
     initial_candidate: uav_r2_c2
     height_m: 40
-    step_count_A_to_B: 4
+    step_count_A_to_B: 6
     event_viewpoints:
       A:
-        id: uav_r4_c2
+        id: uav_r4_c1
         ground_area_xy_m: [122.258, -17.474]
         target_roles: [regional_side_01, regional_side_02, regional_side_03]
         nominal_window_s: [8, 22]
       B:
-        id: uav_r0_c2
+        id: uav_r0_c3
         ground_area_xy_m: [33.329, 13.218]
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
         nominal_window_s: [26, 47]
+    service_junction_id: 1082
+    placement: 保留原 J1 高架侧无人机位置
+    initial_world_xyz_m: [77.794, -2.128, 51.0]
+  rsu_site:
+    service_junction_id: 1176
+    pole_base_world_xyz_m: [-107.0, -1.0, 9.335]
+    sensor_height_m: 7.0
+    placement: J2 上层护栏外侧结构候选，服务同层主路
 traffic:
   target_count: 25
   cohort_A: 3
@@ -72,7 +80,7 @@ traffic:
     in preview
   early: 从环形 r34 爬坡进入西向高架，先看入口曲线被遮住的车。
   late: 合流后跟进另外一批同层主路车；UAV 由匝道视角换到高架下游。
-  validation_note: r34 上坡；只按同一时间、同一 Ego ROI 统计模型可评目标。
+  validation_note: r34 上坡；只按同一时间、同一 Ego ROI 统计模型可评目标。 上层 RSU 安装点需用 CARLA 实景确认护栏外的固定结构及可视方向。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

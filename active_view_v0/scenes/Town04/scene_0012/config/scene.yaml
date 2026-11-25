@@ -9,7 +9,7 @@ overrides:
     lane_traffic:
       layout:
         grid_center_world_xyz: [-76.132, -12.126, 9.8]
-        rsu_world_xyz: [-77.0, -4.0, 16.8]
+        rsu_world_xyz: [-27.0, -69.0, 7.0]
       junction_ids: [764, 1176]
       vehicles:
         regional_ego:

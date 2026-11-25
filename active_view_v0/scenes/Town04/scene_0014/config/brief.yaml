@@ -45,21 +45,29 @@ collaborator_car2:
 agents:
   rsu_world_xyz_m: [29.0, 97.0, 7.0]
   uav:
-    grid_center_world_xyz_m: [17.903, 80.892, 0.0]
+    grid_center_world_xyz_m: [8.5, -8.0, 0.0]
     initial_candidate: uav_r2_c2
     height_m: 40
     step_count_A_to_B: 6
     event_viewpoints:
       A:
-        id: uav_r3_c4
-        ground_area_xy_m: [41.269, 137.664]
-        target_roles: [regional_side_01, regional_side_02, regional_side_03]
-        nominal_window_s: [8, 22]
-      B:
         id: uav_r1_c0
-        ground_area_xy_m: [-5.463, 24.119]
+        ground_area_xy_m: [-6.0, -39.0]
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
-        nominal_window_s: [26, 47]
+        nominal_window_s: [15, 24]
+      B:
+        id: uav_r3_c4
+        ground_area_xy_m: [16.0, 28.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [27, 38]
+    service_junction_id: null
+    placement: J1 至 J2 的 r47 中段，桥口旁开放车道上方
+    initial_world_xyz_m: [8.5, -8.0, 40.0]
+  rsu_site:
+    service_junction_id: 1061
+    pole_base_world_xyz_m: [29.0, 97.0, 0.0]
+    sensor_height_m: 7.0
+    placement: J1 原路缘外杆位
 traffic:
   target_count: 26
   cohort_A: 3
@@ -70,9 +78,9 @@ traffic:
     side: 6
   control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
     in preview
-  early: r31 匝道下坡并入，先补外侧汇入的斜向车队。
-  late: 对向新一批陆续从桥后接近，车队遮挡换侧；UAV 横移。
-  validation_note: 区别于 13：此处是低位并道，重点是对向换边与高架隔离。
+  early: 先看下层主路对向驶向桥口的车流。
+  late: 再看已并入下层主路的匝道新车，验证桥口附近是否需要换侧。
+  validation_note: 以 r47 开放桥口为起点；重点查高架遮挡，避免以另一层目标抬高同层效果。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

@@ -8,7 +8,7 @@ overrides:
     junction_2_id: 764
     lane_traffic:
       layout:
-        grid_center_world_xyz: [-0.293, 2.088, 0.0]
+        grid_center_world_xyz: [-0.478, -72.906, 0.001]
         rsu_world_xyz: [27.0, -17.0, 7.0]
       junction_ids: [764, 1061]
       vehicles:
@@ -30,6 +30,12 @@ overrides:
         regional_car3:
           speed_mps: 8.5
           lanes:
+          - [50, 4, 31.53, 0.53]
+          - [1174, 4, 73.0, 1.0]
+          - [49, 4, 39.238, 0.24]
+          - [902, 4, 21.24, 0.24]
+          - [48, 4, 61.77, 0.77]
+          - [775, 4, 51.23, 0.23]
           - [47, 4, 112.5, 0.0]
           - [1073, 4, 73.77, 0.27]
           - [46, 4, 137.39, 0.89]
@@ -198,7 +204,7 @@ overrides:
           - [1173, -2, 1.0, 73.0]
           - [50, -2, 1.03, 92.53]
           group: with
-          cohort: A
+          cohort: B
         regional_with_12:
           speed_mps: 8.55
           lanes:
@@ -212,7 +218,7 @@ overrides:
           - [1173, -2, 1.0, 73.0]
           - [50, -2, 1.03, 116.53]
           group: with
-          cohort: A
+          cohort: B
         regional_with_13:
           speed_mps: 7.62
           lanes:
@@ -226,7 +232,7 @@ overrides:
           - [1173, -2, 1.0, 73.0]
           - [50, -2, 1.03, 76.03]
           group: with
-          cohort: A
+          cohort: B
         regional_against_02:
           speed_mps: 6.54
           lanes:
@@ -238,7 +244,7 @@ overrides:
           - [1073, 4, 74.27, 0.77]
           - [46, 4, 137.89, 53.89]
           group: against
-          cohort: B
+          cohort: A
         regional_against_03:
           speed_mps: 6.54
           lanes:
@@ -250,7 +256,7 @@ overrides:
           - [1073, 4, 74.27, 0.77]
           - [46, 4, 137.89, 43.39]
           group: against
-          cohort: B
+          cohort: A
         regional_against_04:
           speed_mps: 6.54
           lanes:
@@ -262,7 +268,7 @@ overrides:
           - [1073, 4, 74.27, 0.77]
           - [46, 4, 137.89, 26.89]
           group: against
-          cohort: B
+          cohort: A
         regional_against_05:
           speed_mps: 8.3
           lanes:

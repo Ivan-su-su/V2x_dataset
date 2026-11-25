@@ -64,25 +64,33 @@ collaborator_car2:
     road_lane: [275, 1]
     station_m: 336.4
 agents:
-  rsu_world_xyz_m: [299.0, -194.0, 7.0]
+  rsu_world_xyz_m: [304.99, -204.7, 7.004]
   uav:
-    grid_center_world_xyz_m: [338.393, -220.093, 0.0]
+    grid_center_world_xyz_m: [312.754, -170.444, 0.1]
     initial_candidate: uav_r2_c2
     height_m: 40
-    step_count_A_to_B: 6
+    step_count_A_to_B: 4
     event_viewpoints:
       A:
-        id: uav_r3_c4
-        ground_area_xy_m: [361.454, -172.099]
+        id: uav_r4_c2
+        ground_area_xy_m: [337.0, -172.0]
         target_roles: [regional_side_01, regional_side_02, regional_side_03, regional_side_04, regional_side_05,
           regional_side_06]
         nominal_window_s: [8, 22]
       B:
-        id: uav_r1_c0
-        ground_area_xy_m: [315.332, -268.086]
+        id: uav_r2_c0
+        ground_area_xy_m: [315.0, -245.0]
         target_roles: [regional_side_07, regional_side_08, regional_side_09, regional_side_10, regional_side_11,
           regional_side_12, regional_side_13]
-        nominal_window_s: [26, 47]
+        nominal_window_s: [26, 34]
+    service_junction_id: 483
+    placement: J2 图下方的 J483 上方
+    initial_world_xyz_m: [312.754, -170.444, 40.1]
+  rsu_site:
+    service_junction_id: 459
+    pole_base_world_xyz_m: [304.99, -204.7, 0.004]
+    sensor_height_m: 7.0
+    placement: J483 图左侧的 J459 路缘外
 traffic:
   target_count: 22
   cohort_A: 6
@@ -95,7 +103,7 @@ traffic:
     in preview
   early: 从 r13 经 J870 的单向捷径送车，目标在斜支路入口和接入段。
   late: 后续换成 r2 上的纵向新车，UAV 从斜支路转到主线接续段。
-  validation_note: 图上把捷径与直行分开画；已检查 r886 接向 r477，运行前还要验交通优先级。
+  validation_note: 图上把捷径与直行分开画；已检查 r886 接向 r477，运行前还要验交通优先级。 新起点在 J483，上游接入仍可看；第二窗口在主线车辆驶出网格有效范围前结束。
 clock:
   warmup_s: 2.0
   duration_s: 60.0

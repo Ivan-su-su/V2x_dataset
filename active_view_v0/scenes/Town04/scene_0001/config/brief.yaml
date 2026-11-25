@@ -49,7 +49,7 @@ collaborator_car2:
     road_lane: [275, 1]
     station_m: 94.0
 agents:
-  rsu_world_xyz_m: [212.0, -280.0, 7.0]
+  rsu_world_xyz_m: [212.36, -240.02, 7.004]
   uav:
     grid_center_world_xyz_m: [207.861, -309.377, 0.0]
     initial_candidate: uav_r2_c2
@@ -66,6 +66,14 @@ agents:
         ground_area_xy_m: [246.376, -311.019]
         target_roles: [regional_side_04, regional_side_05, regional_side_06]
         nominal_window_s: [26, 47]
+    service_junction_id: 148
+    placement: 原 J1 附近视点
+    initial_world_xyz_m: [207.861, -309.377, 40.0]
+  rsu_site:
+    service_junction_id: 916
+    pole_base_world_xyz_m: [212.36, -240.02, 0.004]
+    sensor_height_m: 7.0
+    placement: 右侧十字口路缘外
 traffic:
   target_count: 27
   cohort_A: 3

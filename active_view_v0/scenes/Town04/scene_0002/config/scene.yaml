@@ -8,8 +8,8 @@ overrides:
     junction_2_id: 53
     lane_traffic:
       layout:
-        grid_center_world_xyz: [279.579, -287.274, 0.0]
-        rsu_world_xyz: [238.0, -322.0, 7.0]
+        grid_center_world_xyz: [257.163, -306.538, 0.012]
+        rsu_world_xyz: [264.38, -234.68, 7.02]
       junction_ids: [53, 278]
       vehicles:
         regional_ego:
