@@ -12,9 +12,8 @@ from .bev_render import annotate_rgb_snapshot
 from .collector import _class_name, _save_measurements, _write_json
 from .config import dump_effective_config, load_config
 from .weather import weather_parameters
-from .corridors import select_connected_junctions
 from .geometry import carla_matrix, points_in_regional_roi, transform_points, transform_record
-from .regional_layout import build_regional_layout
+from .regional_layout import build_regional_layout, resolve_regional_corridor
 from .regional_preview import _add_overhead_camera, _sensor_range_summary
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
@@ -60,14 +59,7 @@ def collect_regional(
     (run_dir / "frames").mkdir(parents=True)
     dump_effective_config(cfg, run_dir / "effective_config.yaml")
 
-    corridor = select_connected_junctions(
-        world.get_map(),
-        regional.get("junction_1_id"),
-        regional.get("junction_2_id"),
-        int(regional.get("corridor_rank", 0)),
-        float(regional["min_junction_separation_m"]),
-        float(regional["max_junction_separation_m"]),
-    )
+    corridor = resolve_regional_corridor(world.get_map(), regional)
     layout = build_regional_layout(corridor, cfg)
     rsu_xyz = layout["rsu_xyz"]
     grid = layout["grid"]
@@ -316,6 +308,7 @@ def collect_regional(
                 "moving_evaluation_target_count": len(moving_gt),
                 "sensing_agents": sensing_agents,
                 "fixed_signal_states": scenario.fixed_signal_states(),
+                "native_signal_states": scenario.native_signal_states(),
                 "uav_decision": (
                     {
                         "is_decision_frame": mode_record["is_decision_frame"],
@@ -423,12 +416,13 @@ def collect_regional(
             health_failures.append(
                 f"mean target count {observed_mean:.2f} < {minimum_mean:.2f}"
             )
-        if maximum_j1_progress_m < minimum_j1_cross_progress_m:
+        explicit_lane_layout = "layout" in (regional.get("lane_traffic") or {})
+        if not explicit_lane_layout and maximum_j1_progress_m < minimum_j1_cross_progress_m:
             health_failures.append(
                 f"Ego never cleared J1: max progress {maximum_j1_progress_m:.2f}m < "
                 f"{minimum_j1_cross_progress_m:.2f}m"
             )
-        if minimum_j2_distance_m > maximum_ego_j2_distance_m:
+        if not explicit_lane_layout and minimum_j2_distance_m > maximum_ego_j2_distance_m:
             health_failures.append(
                 f"Ego never approached J2: min distance {minimum_j2_distance_m:.2f}m > "
                 f"{maximum_ego_j2_distance_m:.2f}m"

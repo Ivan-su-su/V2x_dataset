@@ -1,0 +1,101 @@
+schema_version: 1
+scene_id: Town04/scene_0009
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 西接点：城市入口波
+family_id: town04_car2_leave
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 890
+  center_world_xy_m: [2.415, -172.166]
+- id: 1197
+  center_world_xy_m: [61.295, -175.463]
+ego:
+  start_world_xyz_m: [15.047, -99.728, 0.0]
+  speed_mps: 6.1
+  route_length_m: 418.9
+  junction_path:
+  - junction_id: 890
+    road_lane: [912, -1]
+    station_m: 61.5
+  - junction_id: 1197
+    road_lane: [1209, -1]
+    station_m: 103.2
+  - junction_id: 1103
+    road_lane: [1148, -1]
+    station_m: 173.7
+  - junction_id: 916
+    road_lane: [962, 1]
+    station_m: 292.2
+  - junction_id: 148
+    road_lane: [209, 1]
+    station_m: 353.4
+  - junction_id: 255
+    road_lane: [275, 1]
+    station_m: 408.9
+collaborator_car2:
+  start_world_xyz_m: [7.953, -123.7, 0.0]
+  speed_mps: 8.5
+  route_length_m: 579.1
+  junction_path:
+  - junction_id: 890
+    road_lane: [901, -2]
+    station_m: 37.5
+  - junction_id: 1159
+    road_lane: [1173, -2]
+    station_m: 99.8
+  - junction_id: 255
+    road_lane: [267, -2]
+    station_m: 369.7
+agents:
+  rsu_world_xyz_m: [33.0, -195.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [33.065, -149.227, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r1_c4
+        ground_area_xy_m: [7.959, -122.2]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03, regional_side_04, regional_side_05,
+          regional_side_06, regional_side_07]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r3_c0
+        ground_area_xy_m: [58.17, -176.255]
+        target_roles: [regional_side_08, regional_side_09, regional_side_10]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 31
+  cohort_A: 7
+  cohort_B: 3
+  groups:
+    with: 10
+    side: 10
+    against: 11
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: 从西侧主路出口接城区时，Car2 沿主路直行提供短时补充。
+  late: Car2 离去，城区侧来车在入口外聚集后流走，UAV 换到城区侧。
+  validation_note: 利用协作车离开造成的覆盖变化；不忽略信号或强制车道跳转。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

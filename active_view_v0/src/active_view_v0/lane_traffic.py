@@ -7,7 +7,8 @@ from math import ceil, isfinite
 
 def validate_lane_traffic(regional: dict) -> None:
     plan = regional["lane_traffic"]
-    if not isinstance(plan, dict) or set(plan) != {"vehicles", "junction_ids"}:
+    if (not isinstance(plan, dict) or not {"vehicles", "junction_ids"} <= set(plan)
+            or set(plan) - {"vehicles", "junction_ids", "layout"}):
         raise ValueError("lane_traffic needs vehicles and junction_ids")
     cycle = regional.get("native_signal_cycle_s")
     if (not isinstance(cycle, dict) or set(cycle) != {"green", "yellow", "red"}
@@ -18,6 +19,26 @@ def validate_lane_traffic(regional: dict) -> None:
             or any(type(j) is not int or j < 0 for j in junctions)
             or len(set(junctions)) != len(junctions)):
         raise ValueError("lane_traffic.junction_ids must contain distinct junction IDs")
+    if "layout" in plan:
+        layout = plan["layout"]
+        if (not isinstance(layout, dict)
+                or set(layout) != {"rsu_world_xyz", "grid_center_world_xyz"}
+                or any(not isinstance(xyz, list) or len(xyz) != 3
+                       or any(type(n) not in (float, int) or not isfinite(n) for n in xyz)
+                       for xyz in layout.values())):
+            raise ValueError("lane layout needs finite RSU and grid center world XYZ vectors")
+        first, second = regional.get("junction_1_id"), regional.get("junction_2_id")
+        if (type(first) is not int or type(second) is not int
+                or first == second or first not in junctions or second not in junctions):
+            raise ValueError("lane layout needs two distinct real reference junction IDs")
+        density = regional["density_validation"]
+        fraction = density.get("target_band_min_fraction", 1.0)
+        if type(fraction) not in (int, float) or not (0 < fraction <= 1):
+            raise ValueError("target_band_min_fraction must be in (0, 1]")
+        median = density.get("target_median_band")
+        if median is not None and (not isinstance(median, list) or len(median) != 2
+                or any(type(n) is not int or n < 0 for n in median) or median[0] > median[1]):
+            raise ValueError("target_median_band must be two nonnegative ordered counts")
     roles = plan["vehicles"]
     if not isinstance(roles, dict) or not set(regional["agent_sensors"]) <= roles.keys():
         raise ValueError("lane_traffic must route every sensing vehicle")
@@ -28,6 +49,15 @@ def validate_lane_traffic(regional: dict) -> None:
             raise ValueError(f"invalid lane traffic vehicle: {role}")
         if spec["group"] == "side" and spec.get("junction_id") not in junctions:
             raise ValueError(f"{role}: side traffic requires a declared junction")
+        cohort = spec.get("cohort")
+        if cohort is not None and (spec["group"] in {"ego", "car2"} or cohort not in ("A", "B")):
+            raise ValueError(f"{role}: cohort must be A or B on a target vehicle")
+        blueprints = spec.get("blueprints")
+        if blueprints is not None and (
+            not isinstance(blueprints, list) or not blueprints
+            or any(not isinstance(bp, str) or not bp.startswith("vehicle.") for bp in blueprints)
+        ):
+            raise ValueError(f"{role}: blueprints must be vehicle asset names")
         lanes = spec.get("lanes")
         if not isinstance(lanes, list) or not lanes:
             raise ValueError(f"{role}: missing lane segments")

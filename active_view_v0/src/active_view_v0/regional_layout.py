@@ -7,6 +7,30 @@ import numpy as np
 from .geometry import make_grid, make_regional_roi
 
 
+def resolve_regional_corridor(carla_map: Any, regional: dict[str, Any]) -> Any:
+    """Resolve the legacy straight corridor or anchors for an explicit lane scene."""
+    from .corridors import ConnectedJunctions, select_connected_junctions
+    from .junctions import rank_junctions
+    from .lane_traffic import resolve_lanes
+
+    first_id, second_id = regional.get("junction_1_id"), regional.get("junction_2_id")
+    plan = regional.get("lane_traffic") or {}
+    if "layout" not in plan:
+        return select_connected_junctions(
+            carla_map, first_id, second_id, int(regional.get("corridor_rank", 0)),
+            float(regional["min_junction_separation_m"]), float(regional["max_junction_separation_m"]),
+        )
+    infos = {j.junction_id: j for j in rank_junctions(carla_map)}
+    missing = set(plan["junction_ids"]) - infos.keys()
+    if missing:
+        raise ValueError(f"explicit lane scene: map lacks junction IDs {sorted(missing)}")
+    route = resolve_lanes(carla_map, plan["vehicles"]["regional_ego"]["lanes"])
+    first, second = infos[first_id], infos[second_id]
+    # These references label the BEV. The directed traffic plan defines connectivity.
+    distance = float(np.linalg.norm(np.asarray(first.center[:2]) - second.center[:2]))
+    return ConnectedJunctions(first, second, tuple(route), distance, (1.0, 0.0), (0.0, 1.0), 0.0)
+
+
 def build_regional_layout(corridor: Any, cfg: dict[str, Any]) -> dict[str, Any]:
     """Resolve RSU, active-UAV grid and the fixed evaluation ROI once."""
     regional = cfg["regional"]
@@ -33,6 +57,10 @@ def build_regional_layout(corridor: Any, cfg: dict[str, Any]) -> dict[str, Any]:
         float(regional.get("uav_grid_offset_forward_m", 0.0)) * forward
         + float(regional.get("uav_grid_offset_right_m", 0.0)) * right
     )
+    explicit = (regional.get("lane_traffic") or {}).get("layout")
+    if explicit is not None:
+        rsu_xyz = list(explicit["rsu_world_xyz"])
+        grid_center = np.asarray(explicit["grid_center_world_xyz"], dtype=np.float64)
     grid = make_grid(
         grid_center,
         forward,

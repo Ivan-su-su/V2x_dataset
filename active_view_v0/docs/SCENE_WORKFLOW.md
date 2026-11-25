@@ -1,5 +1,7 @@
 # Reproducible scenario workflow (v1)
 
+Before using this workflow, read the current [scene requirements](SCENE_REQUIREMENTS.md).
+
 ## Dataset design facts and our adaptations
 
 | Source | What the authors actually built | Rule we take for this project |

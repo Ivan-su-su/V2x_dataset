@@ -1,0 +1,97 @@
+schema_version: 1
+scene_id: Town04/scene_0001
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 十字口：错相穿行
+family_id: town04_cross_wave
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 148
+  center_world_xy_m: [202.604, -309.43]
+- id: 278
+  center_world_xy_m: [257.163, -306.538]
+ego:
+  start_world_xyz_m: [192.169, -364.374, 0.0]
+  speed_mps: 5.1
+  route_length_m: 354.9
+  junction_path:
+  - junction_id: 255
+    road_lane: [271, -1]
+    station_m: 1.5
+  - junction_id: 148
+    road_lane: [210, -1]
+    station_m: 52.7
+  - junction_id: 916
+    road_lane: [927, -1]
+    station_m: 115.2
+  - junction_id: 1452
+    road_lane: [1568, -1]
+    station_m: 193.2
+  - junction_id: 1008
+    road_lane: [1044, -1]
+    station_m: 285.9
+  - junction_id: 621
+    road_lane: [732, -1]
+    station_m: 341.4
+collaborator_car2:
+  start_world_xyz_m: [204.184, -260.9, 0.02]
+  speed_mps: 5.0
+  route_length_m: 347.7
+  junction_path:
+  - junction_id: 148
+    road_lane: [209, 1]
+    station_m: 37.5
+  - junction_id: 255
+    road_lane: [275, 1]
+    station_m: 94.0
+agents:
+  rsu_world_xyz_m: [212.0, -280.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [207.861, -309.377, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r0_c2
+        ground_area_xy_m: [169.346, -307.734]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r4_c2
+        ground_area_xy_m: [246.376, -311.019]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 27
+  cohort_A: 3
+  cohort_B: 3
+  groups:
+    with: 17
+    against: 4
+    side: 6
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: 西侧弧道第一批车等主路间隙，Car2 走对向先交汇。
+  late: 西侧车流结束后东侧下一批抵达；UAV 把观察点换到东侧入口。
+  validation_note: 分时放行；检查东西各有独立进车，不能靠一辆长车拖满 60 秒。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

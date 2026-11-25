@@ -1,0 +1,107 @@
+schema_version: 1
+scene_id: Town04/scene_0003
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 直角转弯：Ego 换轴
+family_id: town04_right_turn
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 53
+  center_world_xy_m: [256.378, -247.679]
+- id: 335
+  center_world_xy_m: [313.445, -248.369]
+ego:
+  start_world_xyz_m: [297.197, -302.638, 0.004]
+  speed_mps: 5.1
+  route_length_m: 352.8
+  junction_path:
+  - junction_id: 335
+    road_lane: [385, -1]
+    station_m: 49.3
+  - junction_id: 53
+    road_lane: [65, -1]
+    station_m: 101.0
+  - junction_id: 785
+    road_lane: [798, 1]
+    station_m: 176.4
+  - junction_id: 1008
+    road_lane: [1024, 1]
+    station_m: 227.4
+  - junction_id: 621
+    road_lane: [732, -1]
+    station_m: 281.1
+collaborator_car2:
+  start_world_xyz_m: [266.82, -246.289, 0.004]
+  speed_mps: 5.0
+  route_length_m: 348.7
+  junction_path:
+  - junction_id: 335
+    road_lane: [457, 1]
+    station_m: 37.5
+  - junction_id: 1249
+    road_lane: [1297, 1]
+    station_m: 146.0
+  - junction_id: 870
+    road_lane: [880, 1]
+    station_m: 161.2
+  - junction_id: 483
+    road_lane: [510, 1]
+    station_m: 177.7
+  - junction_id: 459
+    road_lane: [467, 1]
+    station_m: 193.0
+  - junction_id: 335
+    road_lane: [350, 1]
+    station_m: 250.0
+agents:
+  rsu_world_xyz_m: [319.0, -226.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [292.333, -227.758, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r4_c3
+        ground_area_xy_m: [314.846, -209.207]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r0_c1
+        ground_area_xy_m: [269.82, -246.31]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09, regional_side_10]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 43
+  cohort_A: 3
+  cohort_B: 7
+  groups:
+    with: 29
+    against: 4
+    side: 10
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: Ego 沿纵轴驶向 J335；先补对向及纵轴前方的车队。
+  late: Ego 先右转入 r26、再接 J53；换到横向出口补一批新车。
+  validation_note: 重点查转向后 Ego ROI 内仍有车；A→B 不是继续沿原轴前推。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

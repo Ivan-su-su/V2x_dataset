@@ -10,12 +10,11 @@ from collections import Counter
 from contextlib import contextmanager
 from typing import Any, Iterator
 
-from .corridors import select_connected_junctions
 from .dataset_runtime import Tick
 from .dataset_scene import DatasetScene
 from .geometry import transform_record
 from .regional_collector import _collect_gt
-from .regional_layout import build_regional_layout
+from .regional_layout import build_regional_layout, resolve_regional_corridor
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
 from .weather import weather_parameters
@@ -63,7 +62,7 @@ class CarlaEpisode:
         self._last_uav = self.initial_uav_xyz
 
         self._name_actors()
-        for entry in scenario.fixed_signal_metadata():
+        for entry in scenario.fixed_signal_metadata() + scenario.native_signal_states():
             actor = world.get_actor(entry["traffic_light_id"])
             xyz = actor.get_location()
             identity = actor.get_opendrive_id()
@@ -121,7 +120,7 @@ class CarlaEpisode:
             self._signals[signal["traffic_light_id"]]: {
                 key: signal[key] for key in ("junction", "phase", "actual_state", "expected_state")
             }
-            for signal in self.scenario.fixed_signal_states()
+            for signal in self.scenario.fixed_signal_states() + self.scenario.native_signal_states()
         }
         state = {"actors": actors, "signals": signals, "gt": gt}
         return Tick(index, frame, time_s, capture_wall_s, uav_xyz, transform_record(ego), state)
@@ -175,11 +174,7 @@ def start_episode(scene: DatasetScene) -> Iterator[tuple[CarlaEpisode, dict]]:
         tm.set_synchronous_mode(True)
         tm.set_random_device_seed(int(carla_cfg["seed"]))
         regional = cfg["regional"]
-        corridor = select_connected_junctions(
-            carla_map, regional.get("junction_1_id"), regional.get("junction_2_id"),
-            int(regional.get("corridor_rank", 0)), float(regional["min_junction_separation_m"]),
-            float(regional["max_junction_separation_m"]),
-        )
+        corridor = resolve_regional_corridor(carla_map, regional)
         layout = build_regional_layout(corridor, cfg)
         scenario = RegionalIntersectionScenario(client, world, tm, effective, corridor)
         scenario.setup()

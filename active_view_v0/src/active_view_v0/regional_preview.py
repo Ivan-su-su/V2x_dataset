@@ -12,8 +12,8 @@ import numpy as np
 from .bev_render import annotate_rgb_snapshot, compose_rgb_timeline, render_timeline
 from .config import dump_effective_config, load_config
 from .weather import weather_parameters
-from .corridors import rank_connected_junctions, select_connected_junctions
-from .regional_layout import build_regional_layout
+from .corridors import rank_connected_junctions
+from .regional_layout import build_regional_layout, resolve_regional_corridor
 from .regional_scenario import RegionalIntersectionScenario
 from .sensors import SensorRig
 
@@ -40,14 +40,7 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
     output_dir.mkdir(parents=True)
     dump_effective_config(cfg, output_dir / "effective_config.yaml")
 
-    corridor = select_connected_junctions(
-        world.get_map(),
-        regional.get("junction_1_id"),
-        regional.get("junction_2_id"),
-        int(regional.get("corridor_rank", 0)),
-        float(regional["min_junction_separation_m"]),
-        float(regional["max_junction_separation_m"]),
-    )
+    corridor = resolve_regional_corridor(world.get_map(), regional)
     layout = build_regional_layout(corridor, cfg)
     rsu_xyz = layout["rsu_xyz"]
     grid = layout["grid"]
@@ -125,6 +118,7 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
                     "annotated_rgb_path": annotated_rgb_path.name,
                     "tracked_actor_visible_in_rgb": visibility,
                     "fixed_signal_states": scenario.fixed_signal_states(),
+                    "native_signal_states": scenario.native_signal_states(),
                 }
             )
             print(f"Snapshot t={elapsed_s:5.1f}s frame={frame_id} actors={len(snapshots[-1]['actors'])}")
@@ -188,7 +182,8 @@ def preview(config_path: str | Path, overwrite: bool = False) -> Path:
             "rsu_xyz": rsu_xyz,
             "uav_grid": grid,
             "grid_center_xyz": layout["grid_center_xyz"],
-            "uav_service_region": "corridor_to_junction_2_fixed_world_frame",
+            "uav_service_region": ("explicit_fixed_world_frame" if "layout" in (regional.get("lane_traffic") or {})
+                                   else "corridor_to_junction_2_fixed_world_frame"),
             "roi_mode": str(cfg["scoring"].get("roi_mode", "ego_moving")),
             "evaluation_roi": evaluation_roi,
             "sensor_ranges": sensor_ranges,
@@ -275,7 +270,21 @@ def _add_overhead_camera(rig: SensorRig, corridor: Any, cfg: dict[str, Any]) -> 
     import carla
 
     camera_cfg = cfg["regional"]["bev_camera"]
+    plan = cfg["regional"].get("lane_traffic") or {}
+    explicit = plan.get("layout")
     center = np.asarray(corridor.center, dtype=np.float64)
+    camera_height = float(camera_cfg["height_m"])
+    if explicit is not None:
+        route = [w.transform.location for w in corridor.corridor_waypoints]
+        points = np.array([[p.x, p.y, p.z] for p in route] +
+                          [explicit["grid_center_world_xyz"], explicit["rsu_world_xyz"]])
+        low, high = points.min(axis=0), points.max(axis=0)
+        center = (low + high) * 0.5
+        # At yaw=0 with pitch=-90, screen width follows world Y.
+        aspect = float(camera_cfg["image_size_x"]) / float(camera_cfg["image_size_y"])
+        half_fov_tan = math.tan(math.radians(float(camera_cfg["fov"])) * 0.5)
+        min_half_width = max(high[1] - low[1] + 80., (high[0] - low[0] + 80.) * aspect) / 2
+        camera_height = max(camera_height, min_half_width / half_fov_tan + (high[2] - center[2]))
     forward = np.asarray(corridor.forward_xy, dtype=np.float64)
     yaw = math.degrees(math.atan2(forward[1], forward[0]))
     return rig.add_camera(
@@ -284,7 +293,7 @@ def _add_overhead_camera(rig: SensorRig, corridor: Any, cfg: dict[str, Any]) -> 
             carla.Location(
                 x=float(center[0]),
                 y=float(center[1]),
-                z=float(center[2] + camera_cfg["height_m"]),
+                z=float(center[2] + camera_height),
             ),
             carla.Rotation(pitch=-90.0, yaw=float(yaw)),
         ),
@@ -301,7 +310,7 @@ def _sensor_range_summary(
     uav_cfg = cfg["sensors"]["uav_lidar"]
     uav_slant_m = float(uav_cfg["range"])
     drone_z = float(grid[len(grid) // 2]["location"][2])
-    ground_z = float(corridor.second.center[2])
+    ground_z = drone_z - float(cfg["grid"]["height_m"])
     height_agl = max(0.0, drone_z - ground_z)
     range_limited = math.sqrt(max(0.0, uav_slant_m**2 - height_agl**2))
     upper_fov = float(uav_cfg["upper_fov"])

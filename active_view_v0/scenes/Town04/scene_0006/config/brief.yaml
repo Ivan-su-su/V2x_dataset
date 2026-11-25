@@ -1,0 +1,114 @@
+schema_version: 1
+scene_id: Town04/scene_0006
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 单向捷径：斜向补流
+family_id: town04_shortcut
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 459
+  center_world_xy_m: [316.991, -207.699]
+- id: 870
+  center_world_xy_m: [330.349, -174.007]
+ego:
+  start_world_xyz_m: [314.147, -130.84, 0.004]
+  speed_mps: 5.1
+  route_length_m: 355.0
+  junction_path:
+  - junction_id: 483
+    road_lane: [496, 1]
+    station_m: 31.5
+  - junction_id: 459
+    road_lane: [467, 1]
+    station_m: 51.0
+  - junction_id: 335
+    road_lane: [350, 1]
+    station_m: 108.7
+  - junction_id: 278
+    road_lane: [290, 1]
+    station_m: 214.9
+  - junction_id: 148
+    road_lane: [158, 1]
+    station_m: 267.4
+  - junction_id: 255
+    road_lane: [275, 1]
+    station_m: 315.6
+collaborator_car2:
+  start_world_xyz_m: [313.963, -110.221, 0.004]
+  speed_mps: 5.0
+  route_length_m: 348.6
+  junction_path:
+  - junction_id: 621
+    road_lane: [633, 1]
+    station_m: 1.5
+  - junction_id: 483
+    road_lane: [496, 1]
+    station_m: 51.0
+  - junction_id: 459
+    road_lane: [467, 1]
+    station_m: 72.4
+  - junction_id: 335
+    road_lane: [350, 1]
+    station_m: 129.4
+  - junction_id: 278
+    road_lane: [290, 1]
+    station_m: 234.2
+  - junction_id: 148
+    road_lane: [158, 1]
+    station_m: 288.2
+  - junction_id: 255
+    road_lane: [275, 1]
+    station_m: 336.4
+agents:
+  rsu_world_xyz_m: [299.0, -194.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [338.393, -220.093, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r3_c4
+        ground_area_xy_m: [361.454, -172.099]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03, regional_side_04, regional_side_05,
+          regional_side_06]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r1_c0
+        ground_area_xy_m: [315.332, -268.086]
+        target_roles: [regional_side_07, regional_side_08, regional_side_09, regional_side_10, regional_side_11,
+          regional_side_12, regional_side_13]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 22
+  cohort_A: 6
+  cohort_B: 7
+  groups:
+    against: 4
+    side: 13
+    with: 5
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: 从 r13 经 J870 的单向捷径送车，目标在斜支路入口和接入段。
+  late: 后续换成 r2 上的纵向新车，UAV 从斜支路转到主线接续段。
+  validation_note: 图上把捷径与直行分开画；已检查 r886 接向 r477，运行前还要验交通优先级。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

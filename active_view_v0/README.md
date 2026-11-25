@@ -2,7 +2,7 @@
 
 **新数据集框架：** [统一 CLI、目录规范与 CARLA 验收步骤](docs/DATASET_RUNTIME.md)。
 
-新场景先阅读 [场景工作流](docs/SCENE_WORKFLOW.md) 并填写
+新场景先阅读 [场景要求](docs/SCENE_REQUIREMENTS.md) 和 [场景工作流](docs/SCENE_WORKFLOW.md)，再填写
 [`scene_brief.template.yaml`](docs/scene_brief.template.yaml)。
 `python -m active_view_v0.scene_recipe` 将基准场景、天气和运行模式组合为
 可重放的完整 YAML；下方 v1.x 命令是历史实验记录。

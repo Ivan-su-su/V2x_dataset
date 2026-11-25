@@ -212,7 +212,8 @@ class RegionalIntersectionScenario:
         # Retain CARLA's mutually exclusive native light groups and priorities.
         # Shorter cycles give transverse approaches a chance in a 60 s clip.
         junction_ids = set(plan["junction_ids"])
-        for role in self.cfg["regional"]["agent_sensors"]:
+        managed_roles = routes if "layout" in plan else self.cfg["regional"]["agent_sensors"]
+        for role in managed_roles:
             junction_ids.update(wp.get_junction().id for wp in routes[role] if wp.is_junction)
         lights = {light.id: light for junction in sorted(junction_ids)
                   for light in self.world.get_traffic_lights_in_junction(junction)}
@@ -243,6 +244,7 @@ class RegionalIntersectionScenario:
                 self._lane_crossings[role] = [float(p.x), float(p.y), float(p.z)]
             self._spawn_cav(role, route, speed_difference=0.0, require_path=True,
                             desired_speed_mps=spec["speed_mps"],
+                            blueprint_patterns=spec.get("blueprints"),
                             tm_path=traffic_manager_path(route))
 
     @property
@@ -676,6 +678,16 @@ class RegionalIntersectionScenario:
                 }
             )
         return output
+
+    def native_signal_states(self) -> list[dict[str, Any]]:
+        if "layout" not in (self.cfg["regional"].get("lane_traffic") or {}):
+            return []
+        return [
+            {"traffic_light_id": int(light.id), "junction": None, "phase": "native",
+             "actual_state": _traffic_light_state_name(light.get_state()) if light.is_alive else "Destroyed",
+             "expected_state": None}
+            for light, *_ in self._native_signal_times
+        ]
 
     def release_fixed_signal_plan(self) -> None:
         if self._native_signal_times:

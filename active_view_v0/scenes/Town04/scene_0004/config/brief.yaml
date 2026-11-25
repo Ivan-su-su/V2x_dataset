@@ -1,0 +1,106 @@
+schema_version: 1
+scene_id: Town04/scene_0004
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 连续十字：绿波错位
+family_id: town04_offset_cross
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 785
+  center_world_xy_m: [256.591, -170.534]
+- id: 1452
+  center_world_xy_m: [200.912, -171.315]
+ego:
+  start_world_xyz_m: [141.718, -169.85, 0.196]
+  speed_mps: 5.1
+  route_length_m: 352.0
+  junction_path:
+  - junction_id: 1452
+    road_lane: [1466, -1]
+    station_m: 49.5
+  - junction_id: 785
+    road_lane: [845, -1]
+    station_m: 106.4
+  - junction_id: 483
+    road_lane: [528, -1]
+    station_m: 162.1
+  - junction_id: 459
+    road_lane: [467, 1]
+    station_m: 184.2
+  - junction_id: 335
+    road_lane: [350, 1]
+    station_m: 241.2
+  - junction_id: 278
+    road_lane: [290, 1]
+    station_m: 346.0
+collaborator_car2:
+  start_world_xyz_m: [255.076, -217.899, 0.02]
+  speed_mps: 5.0
+  route_length_m: 348.4
+  junction_path:
+  - junction_id: 785
+    road_lane: [798, 1]
+    station_m: 37.5
+  - junction_id: 1008
+    road_lane: [1012, 1]
+    station_m: 88.7
+  - junction_id: 1452
+    road_lane: [1507, 1]
+    station_m: 170.2
+  - junction_id: 1103
+    road_lane: [1115, 1]
+    station_m: 238.9
+  - junction_id: 1197
+    road_lane: [1210, 1]
+    station_m: 304.9
+agents:
+  rsu_world_xyz_m: [216.0, -151.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [232.674, -167.481, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r1_c4
+        ground_area_xy_m: [210.327, -135.063]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r3_c0
+        ground_area_xy_m: [255.02, -199.9]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 28
+  cohort_A: 3
+  cohort_B: 3
+  groups:
+    with: 14
+    side: 6
+    against: 8
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: 第一个路口侧向来车和一组短队列；RSU 覆盖第一个口的近侧。
+  late: 下游第二个口释放独立横流，Car2 穿过后离开；UAV 接班。
+  validation_note: 分别检查两个路口的实际冲突相位；至少有一段两处都不需要移动。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

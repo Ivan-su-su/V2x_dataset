@@ -17,12 +17,20 @@ def lane_scene_health(rows, cfg, routes):
     if not rows:
         return {"passed": False, "failures": ["no frames to validate"]}
     counts = []
+    moving_counts = []
+    entrants = []
+    departures = []
+    previous_ids = None
     positions = {role: [] for role in plan}
     speeds = {role: [] for role in plan}
     for row in rows:
         sensor = row["sensors"].get("ego_lidar")
         if sensor is None:
             counts.append(None)
+            moving_counts.append(None)
+            entrants.append(None)
+            departures.append(None)
+            previous_ids = None
         else:
             _, ids, _ = gt_boxes_in_ego(
                 row, np.asarray(sensor["transform"]["matrix"]),
@@ -30,6 +38,13 @@ def lane_scene_health(rows, cfg, routes):
                 lidar_range=scoring["detector_lidar_range"],
             )
             counts.append(len(ids))
+            present = set(ids)
+            moving_counts.append(sum(float(np.linalg.norm(actor.get("velocity_world", (0., 0.))[:2])) >= .5
+                                     for actor in row.get("gt", [])
+                                     if actor["actor_id"] in present))
+            entrants.append(None if previous_ids is None else len(present - previous_ids))
+            departures.append(None if previous_ids is None else len(previous_ids - present))
+            previous_ids = present
         actors = row.get("sensing_agents")
         if actors is None:
             actors = {k.rsplit(":", 1)[0]: v for k, v in row["actors"].items()}
@@ -39,10 +54,17 @@ def lane_scene_health(rows, cfg, routes):
             speeds[role].append(float(np.linalg.norm(info["velocity"][:2])) if info else 0.0)
     lo, hi = limits["minimum_targets_per_frame"], limits["maximum_targets_per_frame"]
     bad_frames = [i for i, n in enumerate(counts) if n is None or not lo <= n <= hi]
-    if bad_frames:
+    observed_counts = [n for n in counts if n is not None]
+    in_band = 1.0 - len(bad_frames) / len(rows)
+    required_fraction = float(limits.get("target_band_min_fraction", 1.0))
+    if in_band + 1e-9 < required_fraction or len(observed_counts) != len(rows):
         i = bad_frames[0]
         failures.append(f"{len(bad_frames)} frames outside {lo}–{hi} detector GTs or missing sensors; "
-                        f"first index {i}, count {counts[i]}")
+                        f"first index {i}, count {counts[i]}; fraction in band {in_band:.3f}")
+    median = float(np.median(observed_counts)) if observed_counts else None
+    median_band = limits.get("target_median_band")
+    if median_band is not None and (median is None or not median_band[0] <= median <= median_band[1]):
+        failures.append(f"detector GT median {median} outside {median_band}")
     # Match locations to the dense map path. 3D distance distinguishes stacked roads.
     crossing = {}
     covered = {}
@@ -93,10 +115,13 @@ def lane_scene_health(rows, cfg, routes):
         values = [covered.get(role, 0) for role, spec in plan.items() if spec["group"] == group]
         if sum(v >= 20 for v in values) < (len(values) + 1) // 2:
             failures.append(f"{group} traffic: fewer than half the vehicles advanced 20 m")
-    observed_counts = [n for n in counts if n is not None]
     return {"passed": not failures, "failures": failures, "detector_vehicle_gt_per_frame": counts,
             "detector_gt_min": min(observed_counts, default=None),
             "detector_gt_max": max(observed_counts, default=None),
+            "detector_gt_median": median, "detector_gt_in_band_fraction": in_band,
+            "moving_detector_gt_per_frame": moving_counts,
+            "detector_gt_roi_entries_per_frame": entrants,
+            "detector_gt_roi_exits_per_frame": departures,
             "density_failure_frames": bad_frames, "agent_motion": agents,
             "side_crossings_by_junction": {j: sum(v) for j, v in crossing.items()}}
 

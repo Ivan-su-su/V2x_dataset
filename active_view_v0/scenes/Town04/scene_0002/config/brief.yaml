@@ -1,0 +1,101 @@
+schema_version: 1
+scene_id: Town04/scene_0002
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: T 口：支路到出口
+family_id: town04_t_exit
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 53
+  center_world_xy_m: [256.378, -247.679]
+- id: 278
+  center_world_xy_m: [257.163, -306.538]
+ego:
+  start_world_xyz_m: [205.021, -297.371, 0.02]
+  speed_mps: 5.1
+  route_length_m: 354.1
+  junction_path:
+  - junction_id: 148
+    road_lane: [170, 1]
+    station_m: 1.5
+  - junction_id: 278
+    road_lane: [291, -1]
+    station_m: 51.3
+  - junction_id: 335
+    road_lane: [351, -1]
+    station_m: 152.0
+  - junction_id: 459
+    road_lane: [468, -1]
+    station_m: 174.5
+  - junction_id: 483
+    road_lane: [497, -1]
+    station_m: 228.5
+  - junction_id: 621
+    road_lane: [634, -1]
+    station_m: 278.0
+collaborator_car2:
+  start_world_xyz_m: [302.867, -302.449, 0.004]
+  speed_mps: 5.0
+  route_length_m: 347.9
+  junction_path:
+  - junction_id: 278
+    road_lane: [290, 1]
+    station_m: 38.8
+  - junction_id: 148
+    road_lane: [158, 1]
+    station_m: 92.9
+  - junction_id: 255
+    road_lane: [275, 1]
+    station_m: 141.1
+agents:
+  rsu_world_xyz_m: [238.0, -322.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [279.579, -287.274, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r0_c3
+        ground_area_xy_m: [258.751, -274.588]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r4_c1
+        ground_area_xy_m: [300.406, -299.96]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 21
+  cohort_A: 3
+  cohort_B: 6
+  groups:
+    with: 4
+    against: 8
+    side: 9
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: 南支路车辆沿 r30 接近；车身与转角遮住等待并入的后车。
+  late: 先到车辆消失于东端，第二批从主路与 T 口混合驶出，补看出口。
+  validation_note: Car2 走对向主路；支路仅左右转，不能配置不存在的直行。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

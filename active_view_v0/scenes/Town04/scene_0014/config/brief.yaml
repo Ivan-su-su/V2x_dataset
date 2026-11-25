@@ -1,0 +1,91 @@
+schema_version: 1
+scene_id: Town04/scene_0014
+status: approved_design_offline_preflight
+map: Town04
+seed: 42
+title: 低位并道：遮挡通道换边
+family_id: town04_low_merge
+split_group: town04_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 764
+  center_world_xy_m: [-0.478, -72.906]
+- id: 1061
+  center_world_xy_m: [0.385, 103.727]
+ego:
+  start_world_xyz_m: [9.507, 216.316, 0.0]
+  speed_mps: 9.6
+  route_length_m: 650.6
+  junction_path:
+  - junction_id: 1061
+    road_lane: [1072, -2]
+    station_m: 75.0
+  - junction_id: 764
+    road_lane: [774, -2]
+    station_m: 264.3
+  - junction_id: 890
+    road_lane: [901, -2]
+    station_m: 378.0
+  - junction_id: 1159
+    road_lane: [1173, -2]
+    station_m: 439.3
+collaborator_car2:
+  start_world_xyz_m: [-5.441, 28.619, 0.0]
+  speed_mps: 8.5
+  route_length_m: 578.5
+  junction_path:
+  - junction_id: 1061
+    road_lane: [1073, 3]
+    station_m: 37.5
+  - junction_id: 134
+    road_lane: [144, 3]
+    station_m: 250.7
+agents:
+  rsu_world_xyz_m: [29.0, 97.0, 7.0]
+  uav:
+    grid_center_world_xyz_m: [17.903, 80.892, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r3_c4
+        ground_area_xy_m: [41.269, 137.664]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r1_c0
+        ground_area_xy_m: [-5.463, 24.119]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06]
+        nominal_window_s: [26, 47]
+traffic:
+  target_count: 26
+  cohort_A: 3
+  cohort_B: 3
+  groups:
+    with: 16
+    against: 4
+    side: 6
+  control: CARLA native traffic priorities and lane groups; all vehicles placed before time zero, phases measured
+    in preview
+  early: r31 匝道下坡并入，先补外侧汇入的斜向车队。
+  late: 对向新一批陆续从桥后接近，车队遮挡换侧；UAV 横移。
+  validation_note: 区别于 13：此处是低位并道，重点是对向换边与高架隔离。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

@@ -1,0 +1,215 @@
+schema_version: 1
+scene_id: Town04/scene_0015
+family_id: town04_fork
+baseline_yaml: ../../../../configs/town04_60s.yaml
+overrides:
+  regional:
+    junction_1_id: 134
+    junction_2_id: 1593
+    lane_traffic:
+      layout:
+        grid_center_world_xyz: [22.857, 261.216, 0.0]
+        rsu_world_xyz: [-24.0, 304.0, 7.0]
+      junction_ids: [134, 1593]
+      vehicles:
+        regional_ego:
+          speed_mps: 9.6
+          lanes:
+          - [45, -4, 510.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 468.0]
+          - [1595, -1, 1.41, 23.91]
+          group: ego
+        regional_car3:
+          speed_mps: 8.5
+          lanes:
+          - [45, -2, 547.9, 583.9]
+          - [145, -2, 0.0, 71.538]
+          - [46, -2, 1.5, 138.0]
+          - [1072, -2, 0.88, 74.38]
+          - [47, -2, 0.61, 113.11]
+          - [774, -2, 1.34, 50.84]
+          - [48, -2, 0.88, 62.38]
+          - [901, -2, 1.35, 20.85]
+          - [49, -2, 0.35, 0.35]
+          group: car2
+        regional_with_01:
+          speed_mps: 7.49
+          lanes:
+          - [45, -4, 396.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 229.5]
+          group: with
+        regional_with_02:
+          speed_mps: 9.5
+          lanes:
+          - [45, -4, 409.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 376.5]
+          group: with
+        regional_with_03:
+          speed_mps: 9.5
+          lanes:
+          - [45, -4, 424.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 391.5]
+          group: with
+        regional_with_04:
+          speed_mps: 9.5
+          lanes:
+          - [45, -4, 438.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 406.5]
+          group: with
+        regional_with_05:
+          speed_mps: 9.5
+          lanes:
+          - [45, -4, 451.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 421.5]
+          group: with
+        regional_with_06:
+          speed_mps: 8.64
+          lanes:
+          - [45, -4, 465.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 379.5]
+          group: with
+        regional_with_07:
+          speed_mps: 8.64
+          lanes:
+          - [45, -4, 480.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 394.5]
+          group: with
+        regional_with_08:
+          speed_mps: 8.64
+          lanes:
+          - [45, -4, 501.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 417.0]
+          group: with
+        regional_with_09:
+          speed_mps: 7.49
+          lanes:
+          - [45, -4, 541.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 385.5]
+          group: with
+        regional_with_10:
+          speed_mps: 7.49
+          lanes:
+          - [45, -4, 556.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 402.0]
+          group: with
+        regional_with_11:
+          speed_mps: 7.49
+          lanes:
+          - [45, -4, 570.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 415.5]
+          group: with
+        regional_with_12:
+          speed_mps: 8.64
+          lanes:
+          - [45, -4, 583.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 468.0]
+          - [1595, -1, 1.41, 37.41]
+          group: with
+        regional_side_01:
+          speed_mps: 7.62
+          lanes:
+          - [46, 3, 108.0, 1.5]
+          - [144, 3, 71.538, 0.0]
+          - [45, 3, 583.9, 235.9]
+          group: side
+          junction_id: 134
+          cohort: A
+          blueprints:
+          - vehicle.mercedes.sprinter
+          - vehicle.ford.ambulance
+        regional_side_02:
+          speed_mps: 6.54
+          lanes:
+          - [46, 3, 93.0, 1.5]
+          - [144, 3, 71.538, 0.0]
+          - [45, 3, 583.9, 292.9]
+          group: side
+          junction_id: 134
+          cohort: A
+        regional_side_03:
+          speed_mps: 6.54
+          lanes:
+          - [46, 3, 78.0, 1.5]
+          - [144, 3, 71.538, 0.0]
+          - [45, 3, 583.9, 277.9]
+          group: side
+          junction_id: 134
+          cohort: A
+        regional_side_04:
+          speed_mps: 8.55
+          lanes:
+          - [45, -4, 490.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 400.5]
+          group: side
+          junction_id: 134
+          cohort: B
+        regional_side_05:
+          speed_mps: 7.62
+          lanes:
+          - [45, -4, 519.4, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 370.5]
+          group: side
+          junction_id: 134
+          cohort: B
+        regional_side_06:
+          speed_mps: 6.54
+          lanes:
+          - [45, -4, 532.9, 583.9]
+          - [135, -1, 0.0, 78.4075]
+          - [22, -2, 1.5, 313.5]
+          group: side
+          junction_id: 134
+          cohort: B
+        regional_with_13:
+          speed_mps: 7.14
+          lanes:
+          - [22, -3, 4.5, 468.0]
+          - [1594, -1, 1.41, 20.91]
+          group: with
+        regional_with_14:
+          speed_mps: 7.14
+          lanes:
+          - [22, -3, 46.5, 468.0]
+          - [1594, -1, 1.41, 53.91]
+          - [37, 6, 39.2485, 34.7485]
+          group: with
+        regional_against_01:
+          speed_mps: 7.14
+          lanes:
+          - [45, 5, 493.5, 0.0]
+          - [6, 5, 61.8128, 43.8128]
+          group: against
+        regional_against_02:
+          speed_mps: 7.14
+          lanes:
+          - [45, 6, 525.0, 3.0]
+          group: against
+        regional_against_03:
+          speed_mps: 8.55
+          lanes:
+          - [46, 3, 0.0, 0.0]
+          - [144, 3, 70.04, 1.04]
+          - [45, 3, 584.94, 62.94]
+          group: against
+        regional_against_04:
+          speed_mps: 8.55
+          lanes:
+          - [45, 6, 548.94, 1.44]
+          - [6, 6, 63.2528, 0.2528]
+          - [41, 6, 208.2162, 205.2162]
+          group: against
