@@ -1,0 +1,116 @@
+schema_version: 1
+scene_id: Town05/scene_0010
+status: approved_design_offline_preflight
+map: Town05
+seed: 42
+title: 东 T 口进内环｜Car2 同向跟车
+family_id: town05_east_follow
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 207
+  center_world_xy_m: [-49.97, 89.36]
+- id: 359
+  center_world_xy_m: [152.543, -0.226]
+- id: 720
+  center_world_xy_m: [101.589, 0.349]
+- id: 2086
+  center_world_xy_m: [31.53, 89.007]
+ego:
+  start_world_xyz_m: [151.478, -46.874, 0.039]
+  speed_mps: 6.0
+  route_length_m: 399.7
+  junction_path:
+  - junction_id: 359
+    road_lane: [376, -1]
+    station_m: 34.5
+  - junction_id: 720
+    road_lane: [811, 1]
+    station_m: 80.0
+  - junction_id: 2086
+    road_lane: [2117, 1]
+    station_m: 213.5
+  - junction_id: 207
+    road_lane: [244, -1]
+    station_m: 295.0
+  - junction_id: 1722
+    road_lane: [1784, -1]
+    station_m: 368.5
+collaborator_car2:
+  start_world_xyz_m: [151.445, -82.874, 0.039]
+  speed_mps: 6.0
+  route_length_m: 435.7
+  junction_path:
+  - junction_id: 359
+    road_lane: [376, -1]
+    station_m: 70.5
+  - junction_id: 720
+    road_lane: [811, 1]
+    station_m: 116.0
+  - junction_id: 2086
+    road_lane: [2117, 1]
+    station_m: 249.5
+  - junction_id: 207
+    road_lane: [244, -1]
+    station_m: 331.0
+  - junction_id: 1722
+    road_lane: [1784, -1]
+    station_m: 404.5
+  follows: regional_ego
+  intervening_roles: [regional_follow_01, regional_follow_02]
+  initial_along_lane_gaps_behind_ego_m: [12.0, 24.0, 36.0]
+agents:
+  rsu_junction_id: 359
+  rsu_base_world_xyz_m: [164.543, -0.226, 0.039]
+  rsu_world_xyz_m: [164.543, -0.226, 7.039]
+  uav:
+    initial_reference_junction_id: 720
+    grid_center_world_xyz_m: [99.723, 14.232, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r2_c0
+        target_junction_id: 720
+        ground_area_xy_m: [100.375, -8.301]
+        ground_area_xyz_m: [100.375, -8.301, 0.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r0_c4
+        target_junction_id: 2086
+        ground_area_xy_m: [51.689, 84.985]
+        ground_area_xyz_m: [51.689, 84.985, 0.0]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09, regional_side_10]
+        nominal_window_s: [29, 49]
+traffic:
+  target_count: 26
+  cohort_A: 3
+  cohort_B: 7
+  groups:
+    with: 13
+    side: 10
+    against: 3
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: As the ground agents move, the two target flows may need different UAV views. Verify rescued IDs
+    by event window against center hover and other controls.
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true

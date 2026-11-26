@@ -1,0 +1,111 @@
+schema_version: 1
+scene_id: Town05/scene_0005
+status: approved_design_offline_preflight
+map: Town05
+seed: 42
+title: 中南矩形绕行｜转弯后新 ROI
+family_id: town05_south_loop
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 207
+  center_world_xy_m: [-49.97, 89.36]
+- id: 1427
+  center_world_xy_m: [-49.066, 1.067]
+- id: 1574
+  center_world_xy_m: [29.795, 0.32]
+- id: 2086
+  center_world_xy_m: [31.53, 89.007]
+ego:
+  start_world_xyz_m: [-16.957, 6.091, 0.0]
+  speed_mps: 6.0
+  route_length_m: 400.0
+  junction_path:
+  - junction_id: 1574
+    road_lane: [1605, 1]
+    station_m: 34.5
+  - junction_id: 2086
+    road_lane: [2138, 1]
+    station_m: 108.6
+  - junction_id: 207
+    road_lane: [281, -1]
+    station_m: 175.1
+  - junction_id: 1427
+    road_lane: [1552, 2]
+    station_m: 250.7
+  - junction_id: 1126
+    road_lane: [1174, 1]
+    station_m: 339.7
+collaborator_car2:
+  start_world_xyz_m: [-50.634, 46.122, 0.055]
+  speed_mps: 6.0
+  route_length_m: 445.1
+  junction_path:
+  - junction_id: 207
+    road_lane: [269, -1]
+    station_m: 28.7
+  - junction_id: 2086
+    road_lane: [2087, 1]
+    station_m: 107.4
+  - junction_id: 720
+    road_lane: [789, -1]
+    station_m: 252.1
+  - junction_id: 1292
+    road_lane: [1376, -1]
+    station_m: 396.0
+  placement_note: Midpoint J1427–J207
+agents:
+  rsu_junction_id: 1574
+  rsu_base_world_xyz_m: [41.795, -12.68, 0.0]
+  rsu_world_xyz_m: [41.795, -12.68, 7.0]
+  uav:
+    initial_reference_junction_id: 2086
+    grid_center_world_xyz_m: [24.585, 66.993, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r3_c3
+        target_junction_id: 2086
+        ground_area_xy_m: [42.212, 85.054]
+        ground_area_xyz_m: [42.212, 85.054, 0.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03, regional_side_04, regional_side_05,
+          regional_side_06, regional_side_07]
+        nominal_window_s: [8, 22]
+      B:
+        id: uav_r0_c4
+        target_junction_id: 207
+        ground_area_xy_m: [-43.973, 97.303]
+        ground_area_xyz_m: [-43.973, 97.303, 0.055]
+        target_roles: [regional_side_08, regional_side_09, regional_side_10]
+        nominal_window_s: [29, 49]
+traffic:
+  target_count: 33
+  cohort_A: 7
+  cohort_B: 3
+  groups:
+    with: 16
+    against: 7
+    side: 10
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: As the ground agents move, the two target flows may need different UAV views. Verify rescued IDs
+    by event window against center hover and other controls.
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true
