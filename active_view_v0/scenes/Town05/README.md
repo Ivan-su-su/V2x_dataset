@@ -1,4 +1,4 @@
-# Town05：15 条主动视点候选场景
+# Town05：15 条基础场景与 2 个车流时序变体
 
 每条以 `scene_XXXX/config/scene.yaml` 注册，和
 [`town05_60s.yaml`](../../configs/town05_60s.yaml) 合成运行配置。
@@ -13,9 +13,13 @@
 | 0007 | RSU 服务 A 区 J53，UAV 在 B 区 J979 上方。 |
 | 0008 | RSU 服务 A 区 J1722，UAV 在 B 区 J979；Car2 在 J838 和 J979 之间，朝 J838 行驶。 |
 | 0010–0012 | Ego 和 Car2 走同一路线，起点之间安排两辆同向背景车。 |
+| 0016 | 0011 的对照变体：只向上游移动 J720 的 B 组三辆车，让它们更晚进入观测区。 |
+| 0017 | 0013 的对照变体：只向上游移动 J2296 的 A 组两辆车，让早段来车在 ROI 内重叠更久。 |
 
 其余点位沿用确认图；所有 Ego 路线不变。A/B 是车流区域和观察窗，路面 RGB 上的 J1/J2
 是定位参考，不等同于每条的 A/B。预览和采集使用同一场景配置及 CARLA 原生交通优先级。
+0001 的 B 区观察窗改为 44–60 s，仅更新 brief；车辆路线未改。0016 与 0011、0017 与 0013
+各自使用同一场景家族和数据划分。基础配置的 Where2comm 评测高度上限为 `+1.0 m`，匹配本批使用的 checkpoint。
 
 ## 预览和采集
 
@@ -27,6 +31,8 @@ bash scripts/preview_town05.sh             # 15 条，总览取 0/15/30/45/59.9 
 bash scripts/preview_town05.sh 008 011     # 也可按编号选择
 bash scripts/collect_town05_60s.sh          # 15 条，使用现有 25 点采集器
 bash scripts/collect_town05_60s.sh 008 011  # 先采两条试验
+bash scripts/preview_town05.sh 011 016 013 017     # 先对照预览两个变体
+bash scripts/collect_town05_60s.sh 011 016 013 017  # 在同批次采集原版与变体
 ```
 
 数据根目录由 `ACTIVEVIEW_DATA_ROOT` 设置，脚本默认

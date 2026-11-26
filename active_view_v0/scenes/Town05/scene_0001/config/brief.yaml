@@ -76,7 +76,7 @@ agents:
         ground_area_xy_m: [-44.452, -82.688]
         ground_area_xyz_m: [-44.452, -82.688, 0.055]
         target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07]
-        nominal_window_s: [29, 49]
+        nominal_window_s: [44, 60]
 traffic:
   target_count: 25
   cohort_A: 3
@@ -88,6 +88,8 @@ traffic:
   control: CARLA native traffic priorities; all vehicles placed before warmup
   hypothesis: As the ground agents move, the two target flows may need different UAV views. Verify rescued IDs
     by event window against center hover and other controls.
+  window_note: B is the nominal late window for the existing J1126 flow. Confirm
+    the actual arrival and departure in CARLA; actor routes are unchanged.
 clock:
   warmup_s: 2.0
   duration_s: 60.0

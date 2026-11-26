@@ -189,7 +189,7 @@ scoring:
   - -3.0
   - 140.8
   - 40.0
-  - -1.0
+  - 1.0
 oracle:
   uav_speed_mps: 15.0
   movement_penalty_per_m: 0.01
