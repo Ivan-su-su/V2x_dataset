@@ -1,0 +1,152 @@
+schema_version: 1
+scene_id: Town01/scene_0015
+status: candidate_offline_preflight
+map: Town01
+opendrive_reference_sha256: 15794f0dff5911837e6059ed628618ad666b3526748b698c0be25cdef7b27f70
+title: 从东侧折返北街
+seed: 42
+family_id: town01_east_to_north
+split_group: town01_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 26
+  center_world_xy_m: [156.52, 4.333]
+- id: 77
+  center_world_xy_m: [91.035, 4.309]
+- id: 111
+  center_world_xy_m: [332.25, 57.724]
+- id: 139
+  center_world_xy_m: [332.231, 132.122]
+- id: 167
+  center_world_xy_m: [156.08, 52.844]
+- id: 184
+  center_world_xy_m: [94.884, 57.154]
+ego:
+  start_world_xyz_m: [338.838, 103.183, 0.0]
+  start_road_lane: [17, 1]
+  speed_mps: 6.5
+  route_length_m: 436.6
+  junction_path:
+  - junction_id: 111
+    road_lane: [114, -1]
+    station_m: 34.5
+  - junction_id: 167
+    road_lane: [172, 1]
+    station_m: 216.02
+  - junction_id: 26
+    road_lane: [32, -1]
+    station_m: 266.01
+  - junction_id: 77
+    road_lane: [83, -1]
+    station_m: 330.66
+collaborator_car2:
+  start_world_xyz_m: [338.813, 143.683, 0.0]
+  start_road_lane: [18, 1]
+  speed_mps: 6.5
+  route_length_m: 477.1
+  junction_path:
+  - junction_id: 139
+    road_lane: [150, 1]
+    station_m: 1.5
+  - junction_id: 111
+    road_lane: [114, -1]
+    station_m: 75.0
+  - junction_id: 167
+    road_lane: [172, 1]
+    station_m: 256.52
+  - junction_id: 26
+    road_lane: [32, -1]
+    station_m: 306.51
+  - junction_id: 77
+    road_lane: [83, -1]
+    station_m: 371.16
+  initial_along_path_gap_behind_ego_m: 40.5
+  nominal_overlap_s:
+    ego_roi_and_80m: 60.0
+    a_roi_and_80m: 12.0
+    b_roi_and_80m: 15.0
+agents:
+  rsu_junction_id: 184
+  rsu_base_world_xyz_m: [98.884, 48.154, 0.0]
+  rsu_world_xyz_m: [98.884, 48.154, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 189
+    driving_lane_m: 4.5
+    shoulder_m: 4.6
+    sidewalk_m: 1.0
+  uav:
+    initial_reference_junction_id: 167
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    grid_center_world_xyz_m: [137.838, 55.494, 0.0]
+    evaluation_mode: grid
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 167
+        target_incoming_exit_roads: [25, 9]
+        ground_area_xyz_m: [154.022, 47.482, 0.0]
+        ground_area_xy_m: [154.022, 47.482]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
+          regional_cohort_a_05]
+        nominal_window_s: [22, 34]
+      B:
+        id: uav_r4_c0
+        target_junction_id: 26
+        target_incoming_exit_roads: [1, 25]
+        ground_area_xyz_m: [164.667, -2.043, 0.0]
+        ground_area_xy_m: [164.667, -2.043]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03]
+        nominal_window_s: [39, 54]
+traffic:
+  target_count: 31
+  groups:
+    side: 8
+    with: 6
+    against: 17
+  cohort_A: 5
+  cohort_B: 3
+  control: CARLA native priorities and lights; all vehicles spawn before warmup.
+  hypothesis: 先看 J167 进口，转入北街后看 J26 新车
+  nominal_anchor_arrival_s:
+    A: [25.9, 28.5, 32.3, 33.5, 36.2]
+    B: [31.9, 37.7, 54.3]
+  nominal_density:
+  - model: slow
+    min: 15
+    median: 17.0
+    max: 21
+    fraction_in_band: 1.0
+  - model: light_delay
+    min: 15
+    median: 17.0
+    max: 21
+    fraction_in_band: 1.0
+  - model: high
+    min: 12
+    median: 17.0
+    max: 21
+    fraction_in_band: 1.0
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+  verify_on_real_carla: true

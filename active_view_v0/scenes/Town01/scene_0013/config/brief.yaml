@@ -1,0 +1,157 @@
+schema_version: 1
+scene_id: Town01/scene_0013
+status: candidate_offline_preflight
+map: Town01
+opendrive_reference_sha256: 15794f0dff5911837e6059ed628618ad666b3526748b698c0be25cdef7b27f70
+title: 内街向东直行
+seed: 42
+family_id: town01_inner_control
+split_group: town01_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 77
+  center_world_xy_m: [91.035, 4.309]
+- id: 94
+  center_world_xy_m: [332.229, 197.405]
+- id: 111
+  center_world_xy_m: [332.25, 57.724]
+- id: 139
+  center_world_xy_m: [332.231, 132.122]
+- id: 156
+  center_world_xy_m: [94.904, 130.835]
+- id: 167
+  center_world_xy_m: [156.08, 52.844]
+- id: 184
+  center_world_xy_m: [94.884, 57.154]
+ego:
+  start_world_xyz_m: [88.372, 12.004, 0.0]
+  start_road_lane: [21, -1]
+  speed_mps: 6.5
+  route_length_m: 436.9
+  junction_path:
+  - junction_id: 184
+    road_lane: [193, -1]
+    station_m: 34.5
+  - junction_id: 167
+    road_lane: [179, -1]
+    station_m: 100.73
+  - junction_id: 111
+    road_lane: [112, 1]
+    station_m: 281.39
+  - junction_id: 139
+    road_lane: [151, -1]
+    station_m: 348.55
+  - junction_id: 94
+    road_lane: [99, -1]
+    station_m: 413.06
+collaborator_car2:
+  start_world_xyz_m: [109.786, -2.049, 0.0]
+  start_road_lane: [2, -1]
+  speed_mps: 6.5
+  route_length_m: 468.5
+  junction_path:
+  - junction_id: 77
+    road_lane: [88, -1]
+    station_m: 7.5
+  - junction_id: 184
+    road_lane: [193, -1]
+    station_m: 66.1
+  - junction_id: 167
+    road_lane: [179, -1]
+    station_m: 132.33
+  - junction_id: 111
+    road_lane: [112, 1]
+    station_m: 312.99
+  - junction_id: 139
+    road_lane: [151, -1]
+    station_m: 380.14
+  initial_along_path_gap_behind_ego_m: 31.62
+  nominal_overlap_s:
+    ego_roi_and_80m: 60.0
+    a_roi_and_80m: 9.0
+    b_roi_and_80m: 13.0
+agents:
+  rsu_junction_id: 156
+  rsu_base_world_xyz_m: [98.904, 121.835, 0.0]
+  rsu_world_xyz_m: [98.904, 121.835, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 157
+    driving_lane_m: 4.5
+    shoulder_m: 4.7
+    sidewalk_m: 1.0
+  uav:
+    initial_reference_junction_id: 184
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    grid_center_world_xyz_m: [102.541, 59.499, 0.0]
+    evaluation_mode: grid
+    step_count_A_to_B: 3
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 184
+        target_incoming_exit_roads: [22, 9]
+        ground_area_xyz_m: [95.638, 59.947, 0.0]
+        ground_area_xy_m: [95.638, 59.947]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
+          regional_cohort_a_05]
+        nominal_window_s: [3, 12]
+      B:
+        id: uav_r4_c1
+        target_junction_id: 167
+        target_incoming_exit_roads: [25, 10]
+        ground_area_xyz_m: [154.024, 45.978, 0.0]
+        ground_area_xy_m: [154.024, 45.978]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04,
+          regional_cohort_b_05]
+        nominal_window_s: [14, 27]
+traffic:
+  target_count: 32
+  groups:
+    side: 10
+    with: 9
+    against: 13
+  cohort_A: 5
+  cohort_B: 5
+  control: CARLA native priorities and lights; all vehicles spawn before warmup.
+  hypothesis: A/B 都落在中心点名义射程内，低收益对照
+  nominal_anchor_arrival_s:
+    A: [1.4, 4.7, 6.8, 12.7, 14.7]
+    B: [20.4, 21.0, 22.4, 25.3, 27.3]
+  nominal_density:
+  - model: slow
+    min: 14
+    median: 17.0
+    max: 23
+    fraction_in_band: 1.0
+  - model: light_delay
+    min: 14
+    median: 17.0
+    max: 24
+    fraction_in_band: 1.0
+  - model: high
+    min: 13
+    median: 17.0
+    max: 24
+    fraction_in_band: 1.0
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  verify_on_real_carla: true
