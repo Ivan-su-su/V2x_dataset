@@ -1,0 +1,141 @@
+schema_version: 1
+scene_id: Town06/scene_0004
+status: candidate_offline_preflight
+map: Town06
+opendrive_reference_sha256: a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e
+title: 配对·Car2 同向伴随
+seed: 42
+family_id: town06_central_exit
+split_group: town06_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 72
+  center_world_xy_m: [-0.218, 141.73]
+- id: 452
+  center_world_xy_m: [-3.891, 46.047]
+- id: 728
+  center_world_xy_m: [240.277, 51.578]
+- id: 798
+  center_world_xy_m: [138.055, 34.44]
+ego:
+  start_world_xyz_m: [8.028, 192.534, 0.0]
+  start_road_lane: [34, -2]
+  speed_mps: 6
+  route_length_m: 410.3
+  junction_path:
+  - junction_id: 72
+    road_lane: [97, -1]
+    station_m: 34.56
+  - junction_id: 452
+    road_lane: [511, 1]
+    station_m: 128.57
+  - junction_id: 798
+    road_lane: [799, -7]
+    station_m: 252.51
+  - junction_id: 728
+    road_lane: [735, -6]
+    station_m: 347.25
+collaborator_car2:
+  start_world_xyz_m: [7.862, 174.534, 0.0]
+  start_road_lane: [34, -2]
+  speed_mps: 6.0
+  route_length_m: 411.8
+  junction_path:
+  - junction_id: 72
+    road_lane: [97, -1]
+    station_m: 16.56
+  - junction_id: 452
+    road_lane: [511, 1]
+    station_m: 110.57
+  - junction_id: 798
+    road_lane: [799, -7]
+    station_m: 234.51
+  - junction_id: 728
+    road_lane: [735, -6]
+    station_m: 329.25
+  nominal_overlap_s:
+    ego_roi: 60.0
+    ego_roi_and_80m: 60.0
+    a_roi_and_80m: 12.0
+    b_roi_and_80m: 12.0
+agents:
+  rsu_junction_id: 798
+  rsu_base_world_xyz_m: [146.055, 32.44, 0.0]
+  rsu_world_xyz_m: [146.055, 32.44, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 814
+    driving_lane_m: 3.2
+    shoulder_m: 1.7
+  uav:
+    initial_reference_junction_id: 72
+    height_m: 40
+    evaluation_mode: grid
+    grid_center_world_xyz_m: [17.691, 136.017, 0.0]
+    initial_candidate: uav_r2_c2
+    step_count_A_to_B: 2
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 72
+        ground_area_xy_m: [9.684, 140.344]
+        ground_area_xyz_m: [9.684, 140.344, 0.0]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03]
+        nominal_window_s: [6, 18]
+      B:
+        id: uav_r2_c0
+        target_junction_id: 452
+        ground_area_xy_m: [29.622, 52.371]
+        ground_area_xyz_m: [29.622, 52.371, 0.0]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04]
+        nominal_window_s: [24, 36]
+traffic:
+  target_count: 39
+  groups:
+    side: 7
+    with: 7
+    against: 25
+  cohort_A: 3
+  cohort_B: 4
+  control: CARLA native priorities and lights; all vehicles spawn before warmup; no forced phases or movements.
+  hypothesis: Car2 与 0003 同向出发，在 J452 沿 58→14 随 Ego 转弯。
+  nominal_anchor_arrival_s:
+    A: [2.4, 20.0, 21.9]
+    B: [29.2, 31.4, 34.8, 40.4]
+  nominal_density:
+  - model: slow
+    min: 6
+    median: 16.0
+    max: 23
+    fraction_in_band: 0.9283
+  - model: light_delay
+    min: 6
+    median: 16.0
+    max: 22
+    fraction_in_band: 0.915
+  - model: high
+    min: 9
+    median: 18.0
+    max: 23
+    fraction_in_band: 0.9583
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+  verify_on_real_carla: true

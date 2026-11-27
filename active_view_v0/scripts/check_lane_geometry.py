@@ -21,6 +21,42 @@ def xyz(waypoint):
     return [p.x, p.y, p.z]
 
 
+def _sample_route(route, distance):
+    points = np.array([xyz(wp) for wp in route])
+    station = np.r_[0., np.linalg.norm(np.diff(points, axis=0), axis=1).cumsum()]
+    yaw = np.unwrap(np.deg2rad([wp.transform.rotation.yaw for wp in route]))
+    return (np.stack([np.interp(distance, station, axis) for axis in points.T], axis=-1),
+            np.interp(distance, station, yaw))
+
+
+def _nominal_car2_overlap(scene, routes, events):
+    """Estimate Car2 pose overlap at target speeds; no occlusion or car following model."""
+    cfg = scene.config
+    regional = cfg["regional"]
+    agents = regional["lane_traffic"]["vehicles"]
+    frames = np.arange(scene.frame_count) * scene.dt
+    distance = frames + .65 * float(regional["warmup_s"])
+    ego, yaw = _sample_route(routes["regional_ego"], distance * agents["regional_ego"]["speed_mps"])
+    car2, _ = _sample_route(routes["regional_car3"], distance * agents["regional_car3"]["speed_mps"])
+    dx, dy, dz = (car2 - ego).T
+    c, s = np.cos(yaw), np.sin(yaw)
+    # CARLA +right is the opposite of OpenCOOD's Y in the Ego detector frame.
+    centers = np.stack((c * dx + s * dy, s * dx - c * dy, dz), axis=-1)
+    limits = np.array(cfg["scoring"]["detector_lidar_range"], dtype=float)
+    limits[[2, 5]] += [-5, 5]
+    in_roi = ((limits[:3] <= centers) & (centers <= limits[3:])).all(axis=-1)
+    nearby = in_roi & (np.linalg.norm(car2 - ego, axis=-1) <= cfg["sensors"]["vehicle_lidar"]["range"])
+
+    def seconds(mask):
+        return round(float(np.count_nonzero(mask) * scene.dt), 2)
+
+    result = {"ego_roi": seconds(in_roi), "ego_roi_and_lidar_range": seconds(nearby)}
+    for label, event in events.items():
+        start, stop = event["nominal_window_s"]
+        result[f"{label.lower()}_roi_and_lidar_range"] = seconds(nearby & (start <= frames) & (frames < stop))
+    return result
+
+
 def _nominal_density(scene, routes):
     """Estimate ROI occupancy on planned paths, without interactions or sensing."""
     cfg = scene.config
@@ -31,15 +67,9 @@ def _nominal_density(scene, routes):
     frames = np.arange(scene.frame_count) * scene.dt
     warmup = float(regional["warmup_s"])
 
-    def sample(route, distance):
-        points = np.array([xyz(wp) for wp in route])
-        s = np.r_[0., np.linalg.norm(np.diff(points, axis=0), axis=1).cumsum()]
-        yaw = np.unwrap(np.deg2rad([wp.transform.rotation.yaw for wp in route]))
-        return np.stack([np.interp(distance, s, axis) for axis in points.T], axis=-1), np.interp(distance, s, yaw)
-
     ignored = set(cfg["scoring"]["ignore_roles"])
     targets = [
-        sample(route, (frames + .675 * warmup) * speeds[role])[0]
+        _sample_route(route, (frames + .675 * warmup) * speeds[role])[0]
         for role, route in routes.items() if role not in ignored
     ]
     if not targets:
@@ -48,7 +78,7 @@ def _nominal_density(scene, routes):
     output = []
     for name, speed_ratio, delay_s in (("slow", .78, 0), ("light_delay", .91, 3), ("high", .99, 0)):
         distance = (np.maximum(frames - delay_s, 0) * speed_ratio + .65 * warmup) * speeds["regional_ego"]
-        ego, yaw = sample(routes["regional_ego"], distance)
+        ego, yaw = _sample_route(routes["regional_ego"], distance)
         x, y, z = (positions - ego).transpose(2, 0, 1)
         c, s = np.cos(yaw), np.sin(yaw)
         z += .8 - float(cfg["sensors"]["vehicle_lidar"]["mount"]["z"])
@@ -124,8 +154,10 @@ def check_scene(scene_id, carla_map, nominal_density=False):
     else:
         b = candidates[events["B"]["id"]]
         steps = abs(a["row"] - b["row"]) + abs(a["col"] - b["col"])
-        if steps != uav["step_count_A_to_B"] or steps not in (4, 6):
+        if steps != uav["step_count_A_to_B"] or steps < 1:
             raise ValueError(f"A/B grid path has {steps} steps")
+        if cfg["grid"]["spacing_m"] > float(cfg["oracle"]["uav_speed_mps"]) * scene.dt * scene.decision_ticks + 1e-6:
+            raise ValueError("speed limit cannot reach a neighboring grid point in one decision step")
     targets = [str(p.get("cohort")) for p in plan["vehicles"].values()]
     if min(targets.count("A"), targets.count("B")) < 3:
         raise ValueError("fewer than three planned cars in one cohort")
@@ -141,6 +173,8 @@ def check_scene(scene_id, carla_map, nominal_density=False):
               "uav_steps": steps, "nominal_frames": scene.frame_count}
     if nominal_density:
         result["nominal_density"] = _nominal_density(scene, routes)
+        if "nominal_overlap_s" in brief.get("collaborator_car2", {}):
+            result["nominal_car2_overlap_s"] = _nominal_car2_overlap(scene, routes, events)
     return result
 
 

@@ -1,0 +1,140 @@
+schema_version: 1
+scene_id: Town06/scene_0015
+status: candidate_offline_preflight
+map: Town06
+opendrive_reference_sha256: a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e
+title: 环线西向东·延伸候选边界
+seed: 42
+family_id: town06_ring_extension
+split_group: town06_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 565
+  center_world_xy_m: [95.133, 136.078]
+- id: 1034
+  center_world_xy_m: [474.915, 138.339]
+- id: 1146
+  center_world_xy_m: [217.437, 150.654]
+ego:
+  start_world_xyz_m: [28.11, 150.045, 0.0]
+  start_road_lane: [35, -7]
+  speed_mps: 8
+  route_length_m: 527.3
+  junction_path:
+  - junction_id: 565
+    road_lane: [575, -7]
+    station_m: 34.5
+  - junction_id: 1146
+    road_lane: [1149, -7]
+    station_m: 154.99
+  - junction_id: 1034
+    road_lane: [1037, -7]
+    station_m: 425.6
+collaborator_car2:
+  start_world_xyz_m: [147.609, 150.534, 0.0]
+  start_road_lane: [36, -7]
+  speed_mps: 6.0
+  route_length_m: 428.8
+  junction_path:
+  - junction_id: 1146
+    road_lane: [1149, -7]
+    station_m: 34.5
+  - junction_id: 1034
+    road_lane: [1037, -7]
+    station_m: 306.1
+  nominal_overlap_s:
+    ego_roi: 60.0
+    ego_roi_and_80m: 41.5
+    a_roi_and_80m: 0.0
+    b_roi_and_80m: 11.0
+agents:
+  rsu_junction_id: 1034
+  rsu_base_world_xyz_m: [491.915, 130.339, 0.0]
+  rsu_world_xyz_m: [491.915, 130.339, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 1043
+    driving_lane_m: 3.0
+    shoulder_m: 0.9
+  uav:
+    initial_reference_junction_id: 565
+    height_m: 40
+    evaluation_mode: grid
+    grid_center_world_xyz_m: [125.629, 150.444, 0.0]
+    initial_candidate: uav_r2_c2
+    step_count_A_to_B: 2
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 565
+        ground_area_xy_m: [80.317, 136.258]
+        ground_area_xyz_m: [80.317, 136.258, 0.0]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03]
+        nominal_window_s: [4, 11]
+      B:
+        id: uav_r4_c2
+        target_junction_id: 1146
+        ground_area_xy_m: [213.765, 154.666]
+        ground_area_xyz_m: [213.765, 154.666, 0.0]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04,
+          regional_cohort_b_05, regional_cohort_b_06]
+        nominal_window_s: [20, 31]
+    continuous_extension:
+      ground_area_xyz_m: [287.815, 137.109, 0.0]
+      waypoint_world_xyz_m: [287.815, 137.109, 40.0]
+      nominal_window_s: [27, 37]
+      target_roles: [regional_cohort_b_04, regional_cohort_b_05, regional_cohort_b_06]
+      closest_grid_slant_m: 138.1
+      departure_open_s: 12.0
+      departure_close_s: 15.5
+      direct_flight_time_s: 10.85
+traffic:
+  target_count: 25
+  groups:
+    side: 9
+    with: 1
+    against: 15
+  cohort_A: 3
+  cohort_B: 6
+  control: CARLA native priorities and lights; all vehicles spawn before warmup; no forced phases or movements.
+  hypothesis: J1146 网格内 B 后，还有一批目标进入原网格射程外的同层路段。
+  nominal_anchor_arrival_s:
+    A: [4.7, 8.7, 10.2]
+    B: [24.7, 26.4, 26.6]
+  nominal_density:
+  - model: slow
+    min: 16
+    median: 17.0
+    max: 19
+    fraction_in_band: 1.0
+  - model: light_delay
+    min: 15
+    median: 17.0
+    max: 18
+    fraction_in_band: 1.0
+  - model: high
+    min: 16
+    median: 18.0
+    max: 19
+    fraction_in_band: 1.0
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+  verify_on_real_carla: true

@@ -1,0 +1,130 @@
+schema_version: 1
+scene_id: Town06/scene_0012
+status: candidate_offline_preflight
+map: Town06
+opendrive_reference_sha256: a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e
+title: 东行主线·支路车队
+seed: 42
+family_id: town06_east_feeder
+split_group: town06_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 728
+  center_world_xy_m: [240.277, 51.578]
+- id: 798
+  center_world_xy_m: [138.055, 34.44]
+- id: 1050
+  center_world_xy_m: [515.737, 44.765]
+ego:
+  start_world_xyz_m: [89.741, 52.314, 0.0]
+  start_road_lane: [15, -7]
+  speed_mps: 8
+  route_length_m: 530.0
+  junction_path:
+  - junction_id: 798
+    road_lane: [799, -7]
+    station_m: 34.5
+  - junction_id: 728
+    road_lane: [735, -6]
+    station_m: 129.46
+  - junction_id: 1050
+    road_lane: [1083, -7]
+    station_m: 391.61
+collaborator_car2:
+  start_world_xyz_m: [184.662, 52.225, 0.0]
+  start_road_lane: [16, -6]
+  speed_mps: 6.0
+  route_length_m: 429.1
+  junction_path:
+  - junction_id: 728
+    road_lane: [735, -6]
+    station_m: 34.49
+  - junction_id: 1050
+    road_lane: [1083, -7]
+    station_m: 296.68
+  nominal_overlap_s:
+    ego_roi: 60.0
+    ego_roi_and_80m: 53.8
+    a_roi_and_80m: 3.8
+    b_roi_and_80m: 13.0
+agents:
+  rsu_junction_id: 1050
+  rsu_base_world_xyz_m: [512.737, 32.765, 0.0]
+  rsu_world_xyz_m: [512.737, 32.765, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 1051
+    driving_lane_m: 3.1
+    shoulder_m: 1.1
+  uav:
+    initial_reference_junction_id: 798
+    height_m: 40
+    evaluation_mode: grid
+    grid_center_world_xyz_m: [150.211, 52.257, 0.0]
+    initial_candidate: uav_r2_c2
+    step_count_A_to_B: 2
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 798
+        ground_area_xy_m: [142.792, 41.764]
+        ground_area_xyz_m: [142.792, 41.764, 0.0]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03]
+        nominal_window_s: [3, 10]
+      B:
+        id: uav_r4_c2
+        target_junction_id: 728
+        ground_area_xy_m: [232.338, 56.088]
+        ground_area_xyz_m: [232.338, 56.088, 0.0]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03]
+        nominal_window_s: [16, 29]
+traffic:
+  target_count: 22
+  groups:
+    side: 6
+    with: 4
+    against: 12
+  cohort_A: 3
+  cohort_B: 3
+  control: CARLA native priorities and lights; all vehicles spawn before warmup; no forced phases or movements.
+  hypothesis: Ego 保持主线行驶，B 在 J728 从支路并入。
+  nominal_anchor_arrival_s:
+    A: [4.8, 6.9, 8.4]
+    B: [18.7, 23.1, 24.6]
+  nominal_density:
+  - model: slow
+    min: 15
+    median: 16.0
+    max: 18
+    fraction_in_band: 1.0
+  - model: light_delay
+    min: 15
+    median: 17.0
+    max: 18
+    fraction_in_band: 1.0
+  - model: high
+    min: 16
+    median: 19.0
+    max: 19
+    fraction_in_band: 1.0
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+  verify_on_real_carla: true

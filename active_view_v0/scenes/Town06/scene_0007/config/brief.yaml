@@ -1,0 +1,135 @@
+schema_version: 1
+scene_id: Town06/scene_0007
+status: candidate_offline_preflight
+map: Town06
+opendrive_reference_sha256: a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e
+title: 东端匝道·持续并入
+seed: 42
+family_id: town06_east_ramp
+split_group: town06_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 1034
+  center_world_xy_m: [474.915, 138.339]
+- id: 1050
+  center_world_xy_m: [515.737, 44.765]
+- id: 1203
+  center_world_xy_m: [509.693, -12.764]
+ego:
+  start_world_xyz_m: [446.189, 38.259, 0.0]
+  start_road_lane: [29, -3]
+  speed_mps: 6
+  route_length_m: 410.9
+  junction_path:
+  - junction_id: 1050
+    road_lane: [1051, -1]
+    station_m: 34.5
+  - junction_id: 1203
+    road_lane: [1216, 1]
+    station_m: 98.3
+collaborator_car2:
+  start_world_xyz_m: [414.689, 38.275, 0.0]
+  start_road_lane: [29, -3]
+  speed_mps: 6.0
+  route_length_m: 442.4
+  junction_path:
+  - junction_id: 1050
+    road_lane: [1051, -1]
+    station_m: 66.0
+  - junction_id: 1203
+    road_lane: [1216, 1]
+    station_m: 129.8
+  nominal_overlap_s:
+    ego_roi: 60.0
+    ego_roi_and_80m: 60.0
+    a_roi_and_80m: 7.0
+    b_roi_and_80m: 13.0
+  initial_along_path_gap_behind_ego_m: 31.5
+  previous_draft_nominal_overlap_s:
+    ego_roi: 17.9
+    ego_roi_and_80m: 17.5
+    a_roi_and_80m: 7.0
+    b_roi_and_80m: 1.5
+agents:
+  rsu_junction_id: 1034
+  rsu_base_world_xyz_m: [491.915, 130.339, 0.0]
+  rsu_world_xyz_m: [491.915, 130.339, 7.0]
+  rsu_map_clearance:
+    nearest_road_id: 1043
+    driving_lane_m: 3.0
+    shoulder_m: 0.9
+  uav:
+    initial_reference_junction_id: 1050
+    height_m: 40
+    evaluation_mode: grid
+    grid_center_world_xyz_m: [482.625, 38.242, 0.0]
+    initial_candidate: uav_r2_c2
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r2_c2
+        target_junction_id: 1050
+        ground_area_xy_m: [495.623, 36.503]
+        ground_area_xyz_m: [495.623, 36.503, 0.0]
+        target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
+          regional_cohort_a_05]
+        nominal_window_s: [6, 13]
+      B:
+        id: uav_r4_c0
+        target_junction_id: 1203
+        ground_area_xy_m: [529.568, -10.382]
+        ground_area_xyz_m: [529.568, -10.382, 0.0]
+        target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04,
+          regional_cohort_b_05]
+        nominal_window_s: [16, 29]
+traffic:
+  target_count: 27
+  groups:
+    side: 10
+    with: 2
+    against: 15
+  cohort_A: 5
+  cohort_B: 5
+  control: CARLA native priorities and lights; all vehicles spawn before warmup; no forced phases or movements.
+  hypothesis: B 主线车通过 J1203，同时加入一辆 27→48 匝道来车。
+  nominal_anchor_arrival_s:
+    A: [2.9, 6.2, 13.0, 13.2, 15.1]
+    B: [18.3, 18.4, 18.4, 23.9, 24.9]
+  nominal_density:
+  - model: slow
+    min: 15
+    median: 16.0
+    max: 20
+    fraction_in_band: 1.0
+  - model: light_delay
+    min: 15
+    median: 16.0
+    max: 21
+    fraction_in_band: 1.0
+  - model: high
+    min: 15
+    median: 16.0
+    max: 21
+    fraction_in_band: 1.0
+weather: ClearNoon
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+  detector_lidar_range_m: [-140.8, -40, -3, 140.8, 40, 1]
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+  verify_on_real_carla: true
