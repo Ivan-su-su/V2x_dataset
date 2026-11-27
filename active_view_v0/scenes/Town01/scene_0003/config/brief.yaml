@@ -2,7 +2,7 @@ schema_version: 1
 scene_id: Town01/scene_0003
 status: candidate_offline_preflight
 map: Town01
-opendrive_reference_sha256: 15794f0dff5911837e6059ed628618ad666b3526748b698c0be25cdef7b27f70
+opendrive_reference_sha256: 97a7f6ac67812567e5c8ee0599cd823b23f80f30f3f97c502212e38b72e2b709
 title: 西侧反向分流
 seed: 42
 family_id: town01_west_reverse
@@ -11,49 +11,49 @@ coordinates:
   world: CARLA_xyz_m
   evaluation: ego_moving
 junctions:
-- id: 128
-  center_world_xy_m: [94.912, 197.325]
-- id: 156
-  center_world_xy_m: [94.904, 130.835]
-- id: 167
-  center_world_xy_m: [156.08, 52.844]
-- id: 184
-  center_world_xy_m: [94.884, 57.154]
+- id: 171
+  center_world_xy_m: [92.734, 57.15]
+- id: 255
+  center_world_xy_m: [92.759, 197.33]
+- id: 306
+  center_world_xy_m: [92.756, 130.84]
+- id: 332
+  center_world_xy_m: [156.08, 54.993]
 ego:
-  start_world_xyz_m: [92.407, 242.475, 0.0]
+  start_world_xyz_m: [92.407, 242.48, 0.0]
   start_road_lane: [24, 1]
   speed_mps: 5.6
-  route_length_m: 379.0
+  route_length_m: 379.7
   junction_path:
-  - junction_id: 128
-    road_lane: [136, -1]
+  - junction_id: 255
+    road_lane: [272, 1]
     station_m: 34.5
-  - junction_id: 156
-    road_lane: [165, 1]
-    station_m: 101.8
-  - junction_id: 184
-    road_lane: [191, -1]
+  - junction_id: 306
+    road_lane: [330, 1]
+    station_m: 100.8
+  - junction_id: 171
+    road_lane: [183, 1]
     station_m: 174.79
-  - junction_id: 167
-    road_lane: [179, -1]
+  - junction_id: 332
+    road_lane: [355, -1]
     station_m: 234.39
 collaborator_car2:
-  start_world_xyz_m: [92.412, 273.975, 0.0]
+  start_world_xyz_m: [92.412, 273.98, 0.0]
   start_road_lane: [24, 1]
   speed_mps: 5.6
-  route_length_m: 410.5
+  route_length_m: 411.2
   junction_path:
-  - junction_id: 128
-    road_lane: [136, -1]
+  - junction_id: 255
+    road_lane: [272, 1]
     station_m: 66.0
-  - junction_id: 156
-    road_lane: [165, 1]
-    station_m: 133.3
-  - junction_id: 184
-    road_lane: [191, -1]
+  - junction_id: 306
+    road_lane: [330, 1]
+    station_m: 132.3
+  - junction_id: 171
+    road_lane: [183, 1]
     station_m: 206.29
-  - junction_id: 167
-    road_lane: [179, -1]
+  - junction_id: 332
+    road_lane: [355, -1]
     station_m: 265.89
   initial_along_path_gap_behind_ego_m: 31.5
   nominal_overlap_s:
@@ -61,37 +61,37 @@ collaborator_car2:
     a_roi_and_80m: 12.0
     b_roi_and_80m: 14.0
 agents:
-  rsu_junction_id: 128
-  rsu_base_world_xyz_m: [98.912, 188.325, 0.0]
-  rsu_world_xyz_m: [98.912, 188.325, 7.0]
+  rsu_junction_id: 255
+  rsu_base_world_xyz_m: [99.759, 207.33, 0.0]
+  rsu_world_xyz_m: [99.759, 207.33, 7.0]
   rsu_map_clearance:
-    nearest_road_id: 137
-    driving_lane_m: 4.5
-    shoulder_m: 4.7
-    sidewalk_m: 1.0
+    nearest_road_id: 256
+    driving_lane_m: 5.4
+    shoulder_m: 5.1
+    sidewalk_m: 1.1
   uav:
-    initial_reference_junction_id: 156
+    initial_reference_junction_id: 306
     initial_candidate: uav_r2_c2
     height_m: 40
-    grid_center_world_xyz_m: [97.705, 129.355, 0.0]
+    grid_center_world_xyz_m: [97.705, 129.356, 0.0]
     evaluation_mode: grid
     step_count_A_to_B: 2
     event_viewpoints:
       A:
         id: uav_r2_c2
-        target_junction_id: 156
+        target_junction_id: 306
         target_incoming_exit_roads: [4, 22]
-        ground_area_xyz_m: [105.23, 129.417, 0.0]
-        ground_area_xy_m: [105.23, 129.417]
+        ground_area_xyz_m: [104.123, 129.416, 0.0]
+        ground_area_xy_m: [104.123, 129.416]
         target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
           regional_cohort_a_05]
         nominal_window_s: [11, 23]
       B:
         id: uav_r2_c0
-        target_junction_id: 184
+        target_junction_id: 171
         target_incoming_exit_roads: [21, 9]
-        ground_area_xyz_m: [102.59, 59.499, 0.0]
-        ground_area_xy_m: [102.59, 59.499]
+        ground_area_xyz_m: [100.701, 59.499, 0.0]
+        ground_area_xy_m: [100.701, 59.499]
         target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04,
           regional_cohort_b_05]
         nominal_window_s: [27, 41]
@@ -99,30 +99,30 @@ traffic:
   target_count: 27
   groups:
     side: 10
-    with: 11
-    against: 6
+    with: 10
+    against: 7
   cohort_A: 5
   cohort_B: 5
   control: CARLA native priorities and lights; all vehicles spawn before warmup.
   hypothesis: 同组路口反向驶入后，由 J184 向内转弯
   nominal_anchor_arrival_s:
-    A: [7.7, 14.0, 16.5, 16.6, 18.7]
-    B: [33.9, 41.0, 42.2, 43.2, 44.7]
+    A: [5.3, 13.0, 15.6, 15.6, 18.1]
+    B: [32.8, 36.6, 39.2, 41.7, 42.8]
   nominal_density:
   - model: slow
     min: 15
     median: 17.0
-    max: 21
+    max: 22
     fraction_in_band: 1.0
   - model: light_delay
     min: 15
     median: 17.0
-    max: 21
+    max: 22
     fraction_in_band: 1.0
   - model: high
-    min: 14
+    min: 16
     median: 18.0
-    max: 21
+    max: 22
     fraction_in_band: 1.0
 weather: ClearNoon
 clock:

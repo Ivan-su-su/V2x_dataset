@@ -2,7 +2,7 @@ schema_version: 1
 scene_id: Town01/scene_0012
 status: candidate_offline_preflight
 map: Town01
-opendrive_reference_sha256: 15794f0dff5911837e6059ed628618ad666b3526748b698c0be25cdef7b27f70
+opendrive_reference_sha256: 97a7f6ac67812567e5c8ee0599cd823b23f80f30f3f97c502212e38b72e2b709
 title: 南边长直道
 seed: 42
 family_id: town01_south_long
@@ -11,114 +11,114 @@ coordinates:
   world: CARLA_xyz_m
   evaluation: ego_moving
 junctions:
-- id: 60
-  center_world_xy_m: [336.727, 324.03]
-- id: 94
-  center_world_xy_m: [332.229, 197.405]
-- id: 128
-  center_world_xy_m: [94.912, 197.325]
-- id: 195
-  center_world_xy_m: [90.516, 323.946]
+- id: 87
+  center_world_xy_m: [90.63, 326.094]
+- id: 143
+  center_world_xy_m: [336.725, 326.178]
+- id: 194
+  center_world_xy_m: [334.379, 197.405]
+- id: 255
+  center_world_xy_m: [92.759, 197.33]
 ego:
-  start_world_xyz_m: [88.413, 283.153, 0.0]
+  start_world_xyz_m: [88.413, 283.15, 0.0]
   start_road_lane: [24, -1]
   speed_mps: 6.4
-  route_length_m: 432.3
+  route_length_m: 453.3
   junction_path:
-  - junction_id: 195
-    road_lane: [200, -1]
-    station_m: 34.5
-  - junction_id: 60
-    road_lane: [73, 1]
-    station_m: 280.46
-  - junction_id: 94
-    road_lane: [108, -1]
-    station_m: 411.0
+  - junction_id: 87
+    road_lane: [109, -1]
+    station_m: 34.53
+  - junction_id: 143
+    road_lane: [163, -1]
+    station_m: 279.66
+  - junction_id: 194
+    road_lane: [219, 1]
+    station_m: 410.01
 collaborator_car2:
-  start_world_xyz_m: [88.408, 251.653, 0.0]
+  start_world_xyz_m: [88.408, 251.65, 0.0]
   start_road_lane: [24, -1]
   speed_mps: 6.4
-  route_length_m: 463.8
+  route_length_m: 484.8
   junction_path:
-  - junction_id: 195
-    road_lane: [200, -1]
-    station_m: 66.0
-  - junction_id: 60
-    road_lane: [73, 1]
-    station_m: 311.96
+  - junction_id: 87
+    road_lane: [109, -1]
+    station_m: 66.03
+  - junction_id: 143
+    road_lane: [163, -1]
+    station_m: 311.16
   initial_along_path_gap_behind_ego_m: 31.5
   nominal_overlap_s:
     ego_roi_and_80m: 60.0
     a_roi_and_80m: 12.0
     b_roi_and_80m: 17.0
 agents:
-  rsu_junction_id: 128
-  rsu_base_world_xyz_m: [98.912, 188.325, 0.0]
-  rsu_world_xyz_m: [98.912, 188.325, 7.0]
+  rsu_junction_id: 255
+  rsu_base_world_xyz_m: [99.759, 207.33, 0.0]
+  rsu_world_xyz_m: [99.759, 207.33, 7.0]
   rsu_map_clearance:
-    nearest_road_id: 137
-    driving_lane_m: 4.5
-    shoulder_m: 4.7
-    sidewalk_m: 1.0
+    nearest_road_id: 256
+    driving_lane_m: 5.4
+    shoulder_m: 5.1
+    sidewalk_m: 1.1
   uav:
-    initial_reference_junction_id: 195
+    initial_reference_junction_id: 87
     initial_candidate: uav_r2_c2
     height_m: 40
-    grid_center_world_xyz_m: [94.351, 329.539, 0.0]
+    grid_center_world_xyz_m: [96.861, 329.756, 0.0]
     evaluation_mode: continuous
     step_count_A_to_B: null
     event_viewpoints:
       A:
         id: uav_r2_c2
-        target_junction_id: 195
+        target_junction_id: 87
         target_incoming_exit_roads: [24, 6]
-        ground_area_xyz_m: [93.773, 329.195, 0.0]
-        ground_area_xy_m: [93.773, 329.195]
+        ground_area_xyz_m: [96.665, 329.674, 0.0]
+        ground_area_xy_m: [96.665, 329.674]
         target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
           regional_cohort_a_05]
         nominal_window_s: [2, 14]
       B:
         id: null
-        target_junction_id: 60
+        target_junction_id: 143
         target_incoming_exit_roads: [19, 6]
-        ground_area_xyz_m: [334.711, 312.64, 0.0]
-        ground_area_xy_m: [334.711, 312.64]
+        ground_area_xyz_m: [334.71, 313.805, 0.0]
+        ground_area_xy_m: [334.71, 313.805]
         target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03, regional_cohort_b_04,
           regional_cohort_b_05]
         nominal_window_s: [40, 57]
     continuous_probe:
-      waypoint_world_xyz_m: [334.711, 312.64, 40.0]
+      waypoint_world_xyz_m: [334.71, 313.805, 40.0]
       earliest_departure_s: 16.0
       latest_departure_s: 22.0
-      direct_flight_time_s: 16.06
-      nearest_grid_slant_range_m: 214.1
+      direct_flight_time_s: 15.89
+      nearest_grid_slant_range_m: 211.7
       role: scripted_route_probe
 traffic:
-  target_count: 42
+  target_count: 33
   groups:
     side: 10
-    with: 3
-    against: 29
+    with: 2
+    against: 21
   cohort_A: 5
   cohort_B: 5
   control: CARLA native priorities and lights; all vehicles spawn before warmup.
   hypothesis: B 超出初始网格；单列连续飞行探针
   nominal_anchor_arrival_s:
-    A: [2.2, 5.5, 9.7, 13.4, 18.3]
-    B: [37.4, 42.5, 48.9, 49.2, 54.1]
+    A: [2.7, 5.0, 13.7, 15.7, 17.7]
+    B: [42.8, 46.6, 50.4, 53.0, 54.3]
   nominal_density:
   - model: slow
-    min: 14
-    median: 16.5
-    max: 19
+    min: 13
+    median: 17.0
+    max: 20
     fraction_in_band: 1.0
   - model: light_delay
-    min: 14
+    min: 13
     median: 17.0
     max: 19
     fraction_in_band: 1.0
   - model: high
-    min: 12
+    min: 13
     median: 17.0
     max: 20
     fraction_in_band: 1.0

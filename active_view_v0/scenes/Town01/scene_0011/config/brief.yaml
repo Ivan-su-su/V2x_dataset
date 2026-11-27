@@ -2,7 +2,7 @@ schema_version: 1
 scene_id: Town01/scene_0011
 status: candidate_offline_preflight
 map: Town01
-opendrive_reference_sha256: 15794f0dff5911837e6059ed628618ad666b3526748b698c0be25cdef7b27f70
+opendrive_reference_sha256: 97a7f6ac67812567e5c8ee0599cd823b23f80f30f3f97c502212e38b72e2b709
 title: 东南切入中部横街
 seed: 42
 family_id: town01_southeast_middle
@@ -11,40 +11,40 @@ coordinates:
   world: CARLA_xyz_m
   evaluation: ego_moving
 junctions:
-- id: 60
-  center_world_xy_m: [336.727, 324.03]
-- id: 94
-  center_world_xy_m: [332.229, 197.405]
-- id: 128
-  center_world_xy_m: [94.912, 197.325]
-- id: 156
-  center_world_xy_m: [94.904, 130.835]
+- id: 143
+  center_world_xy_m: [336.725, 326.178]
+- id: 194
+  center_world_xy_m: [334.379, 197.405]
+- id: 255
+  center_world_xy_m: [92.759, 197.33]
+- id: 306
+  center_world_xy_m: [92.756, 130.84]
 ego:
-  start_world_xyz_m: [381.881, 326.61, 0.0]
+  start_world_xyz_m: [381.88, 326.61, 0.0]
   start_road_lane: [7, 1]
   speed_mps: 6.4
   route_length_m: 506.9
   junction_path:
-  - junction_id: 60
-    road_lane: [61, -1]
+  - junction_id: 143
+    road_lane: [144, 1]
     station_m: 34.5
-  - junction_id: 94
-    road_lane: [95, 1]
+  - junction_id: 194
+    road_lane: [195, 1]
     station_m: 158.4
-  - junction_id: 128
-    road_lane: [137, -1]
+  - junction_id: 255
+    road_lane: [273, 1]
     station_m: 404.94
 collaborator_car2:
-  start_world_xyz_m: [392.344, 302.621, 0.0]
+  start_world_xyz_m: [392.344, 302.623, 0.0]
   start_road_lane: [8, 1]
   speed_mps: 6.4
   route_length_m: 538.2
   junction_path:
-  - junction_id: 60
-    road_lane: [61, -1]
+  - junction_id: 143
+    road_lane: [144, 1]
     station_m: 65.84
-  - junction_id: 94
-    road_lane: [95, 1]
+  - junction_id: 194
+    road_lane: [195, 1]
     station_m: 189.74
   initial_along_path_gap_behind_ego_m: 31.35
   nominal_overlap_s:
@@ -52,68 +52,68 @@ collaborator_car2:
     a_roi_and_80m: 10.0
     b_roi_and_80m: 15.0
 agents:
-  rsu_junction_id: 60
-  rsu_base_world_xyz_m: [327.727, 320.03, 0.0]
-  rsu_world_xyz_m: [327.727, 320.03, 7.0]
+  rsu_junction_id: 143
+  rsu_base_world_xyz_m: [346.725, 319.178, 0.0]
+  rsu_world_xyz_m: [346.725, 319.178, 7.0]
   rsu_map_clearance:
-    nearest_road_id: 75
-    driving_lane_m: 4.6
-    shoulder_m: 4.7
-    sidewalk_m: 1.0
+    nearest_road_id: 144
+    driving_lane_m: 5.4
+    shoulder_m: 5.1
+    sidewalk_m: 1.1
   uav:
-    initial_reference_junction_id: 94
+    initial_reference_junction_id: 194
     initial_candidate: uav_r2_c2
     height_m: 40
-    grid_center_world_xyz_m: [314.545, 195.158, 0.0]
+    grid_center_world_xyz_m: [316.54, 195.158, 0.0]
     evaluation_mode: grid
     step_count_A_to_B: 2
     event_viewpoints:
       A:
         id: uav_r2_c2
-        target_junction_id: 94
+        target_junction_id: 194
         target_incoming_exit_roads: [18, 12]
-        ground_area_xyz_m: [333.521, 192.261, 0.0]
-        ground_area_xy_m: [333.521, 192.261]
+        ground_area_xyz_m: [334.108, 191.261, 0.0]
+        ground_area_xy_m: [334.108, 191.261]
         target_roles: [regional_cohort_a_01, regional_cohort_a_02, regional_cohort_a_03, regional_cohort_a_04,
           regional_cohort_a_05]
         nominal_window_s: [19, 29]
       B:
         id: uav_r0_c2
-        target_junction_id: 94
+        target_junction_id: 194
         target_incoming_exit_roads: [12, 19]
-        ground_area_xyz_m: [236.901, 199.152, 0.0]
-        ground_area_xy_m: [236.901, 199.152]
+        ground_area_xyz_m: [238.075, 199.152, 0.0]
+        ground_area_xy_m: [238.075, 199.152]
         target_roles: [regional_cohort_b_01, regional_cohort_b_02, regional_cohort_b_03]
         nominal_window_s: [34, 49]
 traffic:
-  target_count: 33
+  target_count: 29
   groups:
     side: 8
     with: 3
-    against: 22
+    against: 18
   cohort_A: 5
   cohort_B: 3
   control: CARLA native priorities and lights; all vehicles spawn before warmup.
   hypothesis: J94 进口到 r12 中段，B 选独立对向车流
   nominal_anchor_arrival_s:
-    A: [22.7, 24.6, 25.5, 26.8, 27.5]
-    B: [40.0, 42.4, 42.5]
+    A: [21.2, 23.7, 24.3, 25.4, 26.3]
+    B: [37.7, 41.6, 41.6]
   nominal_density:
   - model: slow
-    min: 11
-    median: 18.0
+    min: 12
+    median: 19.0
     max: 23
-    fraction_in_band: 0.995
+    fraction_in_band: 1.0
   - model: light_delay
-    min: 11
+    min: 12
     median: 19.0
     max: 23
-    fraction_in_band: 0.99
+    fraction_in_band: 1.0
   - model: high
-    min: 11
+    min: 12
     median: 19.0
-    max: 25
-    fraction_in_band: 0.995
+    max: 24
+    fraction_in_band: 1.0
 weather: ClearNoon
 clock:
   warmup_s: 2.0
