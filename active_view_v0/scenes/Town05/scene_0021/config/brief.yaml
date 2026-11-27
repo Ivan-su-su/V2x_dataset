@@ -1,0 +1,119 @@
+schema_version: 1
+scene_id: Town05/scene_0021
+status: handoff_candidate_offline_preflight
+map: Town05
+seed: 42
+title: 东外弧回城｜Car2 同向跟车｜B 组到达时序变体｜J359 上游起飞
+family_id: town05_outer_follow
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 359
+  center_world_xy_m: [152.543, -0.226]
+- id: 720
+  center_world_xy_m: [101.589, 0.349]
+- id: 2062
+  center_world_xy_m: [31.739, 143.227]
+ego:
+  start_world_xyz_m: [35.042, 176.389, 0.0]
+  speed_mps: 7.5
+  route_length_m: 495.1
+  junction_path:
+  - junction_id: 2062
+    road_lane: [2065, -1]
+    station_m: 21.0
+  - junction_id: 359
+    road_lane: [383, 1]
+    station_m: 255.0
+  - junction_id: 720
+    road_lane: [791, 1]
+    station_m: 304.9
+  - junction_id: 1574
+    road_lane: [1623, -1]
+    station_m: 376.6
+  - junction_id: 1427
+    road_lane: [1439, -1]
+    station_m: 454.6
+collaborator_car2:
+  start_world_xyz_m: [66.509, 187.899, 0.0]
+  speed_mps: 7.5
+  route_length_m: 534.3
+  junction_path:
+  - junction_id: 2328
+    road_lane: [2370, 1]
+    station_m: 22.5
+  - junction_id: 2062
+    road_lane: [2065, -1]
+    station_m: 60.2
+  - junction_id: 359
+    road_lane: [383, 1]
+    station_m: 294.2
+  - junction_id: 720
+    road_lane: [791, 1]
+    station_m: 344.1
+  - junction_id: 1574
+    road_lane: [1623, -1]
+    station_m: 415.8
+  - junction_id: 1427
+    road_lane: [1439, -1]
+    station_m: 493.8
+  follows: regional_ego
+  intervening_roles: [regional_follow_01, regional_follow_02]
+  initial_along_lane_gaps_behind_ego_m: [18.247, 28.747, 39.247]
+agents:
+  rsu_junction_id: 2062
+  rsu_base_world_xyz_m: [18.739, 143.227, 0.0]
+  rsu_world_xyz_m: [18.739, 143.227, 7.0]
+  uav:
+    initial_reference_junction_id: 359
+    grid_center_world_xyz_m: [155.047, 28.273, 0.039]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r3_c0
+        target_junction_id: 359
+        ground_area_xy_m: [151.506, -15.675]
+        ground_area_xyz_m: [151.506, -15.675, 0.039]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [25, 40]
+      B:
+        id: uav_r0_c1
+        target_junction_id: 720
+        ground_area_xy_m: [96.439, -16.153]
+        ground_area_xyz_m: [96.439, -16.153, 0.0]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06]
+        nominal_window_s: [43, 58]
+traffic:
+  target_count: 41
+  cohort_A: 3
+  cohort_B: 3
+  groups:
+    with: 13
+    side: 6
+    against: 22
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: The original delayed J720 traffic tests if moving from the J359 approach is useful after Car2 arrives.
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+design_slot: '0016'
+baseline_scene_id: Town05/scene_0016

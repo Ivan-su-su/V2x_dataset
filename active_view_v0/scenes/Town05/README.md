@@ -1,4 +1,4 @@
-# Town05：15 条基础场景与 2 个车流时序变体
+# Town05：15 条基础场景、2 个时序对照与 5 个接力补盲场景
 
 每条以 `scene_XXXX/config/scene.yaml` 注册，和
 [`town05_60s.yaml`](../../configs/town05_60s.yaml) 合成运行配置。
@@ -53,3 +53,32 @@ PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}" \
 Car2 跟车覆盖、目标密度，以及加入 Car2 或移动 UAV 带来的漏检恢复，仍须在 CARLA
 实采和评测中确认。Town05 暂用同一 split group，避免重叠路线跨训练和测试拆分。
 已完成的离线检查见 [验证记录](VALIDATION.md)。
+
+## 接力补盲场景
+
+| 确认稿 | 注册编号 | 对照 | 改动 |
+| --- | --- | --- | --- |
+| 016 v2 | **0021** | 0016 | 起飞点移到 J359 的 r20 进口上游，保留 J720 已延后的 B 组来车。 |
+| 017 v2 | **0022** | 0017 | 起飞点移到 J2296 进口，B 改用 J1292 下游 r16 的对向车流。 |
+| 018 | **0018** | 0008 | A 为 J1722 进口，B 为 J979 西侧 r2；保留原 Car2 且改用 J2240 的 RSU 候选杆位。 |
+| 019 | **0019** | 0009 | 保留所有原路线和感知布局，仅在 B 加两辆错峰来车，延长 J838 观测窗。 |
+| 020 | **0020** | 0012 | 保留 J2014 的 A 组，B 改为 r34 下游连续车流；初始网格无法观测 B 的代表点。 |
+
+0016、0017 原配置仍可独立运行。变体沿用各自原场景的家族和数据划分。
+新场景的试采目标为全片 AP50 相对同起点悬停提高 7–8 个百分点；另报 R50、B 区固定
+悬停和新增恢复 ID。该目标尚无 CARLA 实测。
+
+```bash
+bash scripts/preview_town05.sh 019 020 022 021 018
+# 020 若用网格采集，仅是覆盖限制对照。
+bash scripts/collect_town05_60s.sh 009 019 017 022 016 021 008 018
+
+export PYTHONPATH="$PWD/src:$PWD${PYTHONPATH:+:$PYTHONPATH}"
+activeview run --scene Town05/scene_0020 --mode online_realtime --policy hover --run-id hover_0020
+activeview run --scene Town05/scene_0020 --mode online_realtime \
+  --policy scripts.town05_continuous_probe:b_waypoint --run-id probe_0020
+```
+
+第二条在线命令是路径探针：先在 A 悬停，18 秒后请求飞往 B 的检查点，由现有
+`online_realtime` 循环限速移动并记录传感器。它验证轨迹和采集，不是自主决策
+结果。`online_step` 的位置指令在下一帧直接生效，因此不要用它代替限速连续飞行对照。

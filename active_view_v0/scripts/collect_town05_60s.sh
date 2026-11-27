@@ -7,7 +7,7 @@ set -euo pipefail
 # BATCH=20261125_220000 bash scripts/collect_town05_60s.sh  # Resume a batch
 
 if [[ ${1:-} == --help || ${1:-} == -h ]]; then
-  echo "Usage: bash $0 [scene number 1–17 ...] (default: 1–15)"
+  echo "Usage: bash $0 [scene number 1–22 ...] (default: 1–15; grid only)"
   echo "Optional environment variables: PROJECT, ACTIVEVIEW_DATA_ROOT, DATA_ROOT, BATCH"
   exit 0
 fi
@@ -16,8 +16,8 @@ if (( $# == 0 )); then
   set -- {1..15}
 fi
 for selected in "$@"; do
-  if [[ ! "$selected" =~ ^[0-9]{1,4}$ ]] || (( 10#$selected < 1 || 10#$selected > 17 )); then
-    echo "无效场景编号：$selected（应为 0001–0017）" >&2
+  if [[ ! "$selected" =~ ^[0-9]{1,4}$ ]] || (( 10#$selected < 1 || 10#$selected > 22 )); then
+    echo "无效场景编号：$selected（应为 0001–0022）" >&2
     exit 2
   fi
 done

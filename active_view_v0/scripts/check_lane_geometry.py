@@ -101,10 +101,31 @@ def check_scene(scene_id, carla_map, nominal_density=False):
         raise ValueError("RSU placement differs from the scene brief")
     if not math.isclose(scene.dt * scene.decision_ticks, 1.0):
         raise ValueError("expected 1 Hz decisions")
-    a, b = (candidates[uav["event_viewpoints"][label]["id"]] for label in ("A", "B"))
-    steps = abs(a["row"] - b["row"]) + abs(a["col"] - b["col"])
-    if steps != uav["step_count_A_to_B"] or steps not in (4, 6):
-        raise ValueError(f"A/B grid path has {steps} steps")
+    events = uav["event_viewpoints"]
+    a = candidates[events["A"]["id"]]
+    lidar_range = float(cfg["sensors"]["uav_lidar"]["range"])
+    steps = None
+    if uav.get("evaluation_mode", "grid") == "continuous":
+        probe = uav["continuous_probe"]
+        waypoint = probe["waypoint_world_xyz_m"]
+        if (len(waypoint) != 3 or not all(math.isfinite(x) for x in waypoint)
+                or events["B"]["id"] is not None or uav["step_count_A_to_B"] is not None):
+            raise ValueError("continuous scene needs a finite B waypoint and no B grid ID or steps")
+        b_ground = events["B"]["ground_area_xyz_m"]
+        if min(math.dist(point["location"], b_ground) for point in candidates.values()) <= lidar_range:
+            raise ValueError("continuous test B target is within the starting grid's nominal LiDAR range")
+        start = candidates[uav["initial_candidate"]]["location"]
+        depart_min, depart_max = (probe[f"{bound}_departure_s"] for bound in ("earliest", "latest"))
+        b_start = events["B"]["nominal_window_s"][0]
+        duration = math.dist(start, waypoint) / cfg["oracle"]["uav_speed_mps"]
+        if not 0 <= depart_min <= depart_max <= b_start or depart_min + duration > b_start:
+            raise ValueError("continuous test B waypoint is not reachable from the start in time")
+        b = {"location": waypoint}
+    else:
+        b = candidates[events["B"]["id"]]
+        steps = abs(a["row"] - b["row"]) + abs(a["col"] - b["col"])
+        if steps != uav["step_count_A_to_B"] or steps not in (4, 6):
+            raise ValueError(f"A/B grid path has {steps} steps")
     targets = [str(p.get("cohort")) for p in plan["vehicles"].values()]
     if min(targets.count("A"), targets.count("B")) < 3:
         raise ValueError("fewer than three planned cars in one cohort")
@@ -112,10 +133,10 @@ def check_scene(scene_id, carla_map, nominal_density=False):
         expected_roles = {role for role, p in plan["vehicles"].items() if p.get("cohort") == label}
         if expected_roles != set(uav["event_viewpoints"][label]["target_roles"]):
             raise ValueError(f"cohort {label} roles differ from the scene brief")
-        xy = uav["event_viewpoints"][label]["ground_area_xy_m"]
-        distance = math.dist(pos["location"][:2], xy)
-        if distance > float(cfg["sensors"]["uav_lidar"]["range"]):
-            raise ValueError(f"cohort {label} is outside even the horizontal LiDAR range")
+        ground = events[label].get("ground_area_xyz_m", events[label]["ground_area_xy_m"])
+        distance = math.dist(pos["location"][:len(ground)], ground)
+        if distance > lidar_range:
+            raise ValueError(f"cohort {label} is outside the nominal LiDAR range")
     result = {"scene": scene_id, "routes": len(starts), "minimum_spawn_gap_m": round(gap, 3),
               "uav_steps": steps, "nominal_frames": scene.frame_count}
     if nominal_density:

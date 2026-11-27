@@ -1,0 +1,106 @@
+schema_version: 1
+scene_id: Town05/scene_0020
+status: handoff_candidate_offline_preflight
+map: Town05
+seed: 42
+title: 北侧单向口并入外环｜Car2 同向跟车｜连续飞行到 r34
+family_id: town05_north_follow
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 2014
+  center_world_xy_m: [33.806, -195.682]
+- id: 2296
+  center_world_xy_m: [35.895, -148.025]
+ego:
+  start_world_xyz_m: [80.356, -147.994, 0.039]
+  speed_mps: 8.0
+  route_length_m: 530.4
+  junction_path:
+  - junction_id: 2296
+    road_lane: [2318, 1]
+    station_m: 34.7
+  - junction_id: 2014
+    road_lane: [2043, 1]
+    station_m: 66.1
+collaborator_car2:
+  start_world_xyz_m: [116.054, -141.946, 0.039]
+  speed_mps: 8.0
+  route_length_m: 566.6
+  junction_path:
+  - junction_id: 2296
+    road_lane: [2318, 1]
+    station_m: 70.9
+  - junction_id: 2014
+    road_lane: [2043, 1]
+    station_m: 102.3
+  follows: regional_ego
+  intervening_roles: [regional_follow_01, regional_follow_02]
+  initial_along_lane_gaps_behind_ego_m: [12.074, 24.148, 36.231]
+agents:
+  rsu_junction_id: 2296
+  rsu_base_world_xyz_m: [45.895, -135.025, 0.0]
+  rsu_world_xyz_m: [45.895, -135.025, 7.0]
+  uav:
+    initial_reference_junction_id: 2014
+    grid_center_world_xyz_m: [52.659, -186.676, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: null
+    event_viewpoints:
+      A:
+        id: uav_r0_c2
+        target_junction_id: 2014
+        ground_area_xy_m: [24.325, -193.556]
+        ground_area_xyz_m: [24.325, -193.556, 0.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [6, 16]
+      B:
+        id: null
+        target_junction_id: null
+        ground_area_xy_m: [189.04, -71.023]
+        ground_area_xyz_m: [189.04, -71.023, 0.0]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09, regional_side_10]
+        nominal_window_s: [35, 52]
+        target_road_lane: [34, 4]
+    evaluation_mode: continuous
+    continuous_probe:
+      waypoint_world_xyz_m: [189.04, -71.023, 40.0]
+      earliest_departure_s: 18.0
+      latest_departure_s: 24.0
+      role: scripted_route_probe
+traffic:
+  target_count: 24
+  cohort_A: 3
+  cohort_B: 7
+  groups:
+    with: 11
+    side: 3
+    against: 10
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: The outer bend is beyond every starting-grid point; continuous movement can place the UAV above
+    the late outer-ring traffic.
+  nominal_B_two_simultaneous_s: [17.0, 17.0, 17.0]
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+design_slot: '0020'
+baseline_scene_id: Town05/scene_0012
