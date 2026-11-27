@@ -1,0 +1,129 @@
+schema_version: 1
+scene_id: Town05/scene_0027
+status: handoff_candidate_offline_preflight
+map: Town05
+seed: 42
+title: J838 桥前到 J1930 后 r24 外弧
+family_id: town05_west_underpass
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 838
+  center_world_xy_m: [-189.818, 1.376]
+- id: 979
+  center_world_xy_m: [-127.279, 0.597]
+- id: 1930
+  center_world_xy_m: [-283.419, 1.23]
+ego:
+  start_world_xyz_m: [-77.244, -0.763, 0.0]
+  speed_mps: 6.0
+  route_length_m: 399.1
+  junction_path:
+  - junction_id: 979
+    road_lane: [1072, -1]
+    station_m: 34.5
+  - junction_id: 838
+    road_lane: [869, -1]
+    station_m: 100.1
+  - junction_id: 1930
+    road_lane: [1946, -1]
+    station_m: 181.8
+  - junction_id: 562
+    road_lane: [607, 1]
+    station_m: 342.1
+collaborator_car2:
+  start_world_xyz_m: [-265.2, 48.082, 0.0]
+  speed_mps: 6.0
+  route_length_m: 394.6
+  junction_path:
+  - junction_id: 1930
+    road_lane: [1957, 1]
+    station_m: 34.5
+  - junction_id: 838
+    road_lane: [868, 2]
+    station_m: 104.1
+  - junction_id: 979
+    road_lane: [1000, 1]
+    station_m: 162.3
+  - junction_id: 1722
+    road_lane: [1756, 2]
+    station_m: 240.5
+  - junction_id: 2240
+    road_lane: [2292, 1]
+    station_m: 301.7
+  - junction_id: 562
+    road_lane: [623, -1]
+    station_m: 388.5
+agents:
+  rsu_junction_id: 838
+  rsu_base_world_xyz_m: [-175.818, 14.376, 0.0]
+  rsu_world_xyz_m: [-175.818, 14.376, 7.0]
+  uav:
+    initial_reference_junction_id: 1930
+    grid_center_world_xyz_m: [-218.287, -0.419, 0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 6
+    event_viewpoints:
+      A:
+        id: uav_r3_c1
+        target_junction_id: 838
+        ground_area_xy_m: [-204.302, -3.953]
+        ground_area_xyz_m: [-204.302, -3.953, 0.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+        offline_opportunity:
+          at_candidate:
+            at_least_2_s: [9.8, 9.8, 9.8]
+            target_seconds: [23.1, 23.1, 23.1]
+          outside_center:
+            at_least_2_s: [0.0, 0.0, 0.0]
+            target_seconds: [0.0, 0.0, 0.0]
+      B:
+        id: uav_r0_c4
+        target_junction_id: null
+        ground_area_xy_m: [-271.999, 67.848]
+        ground_area_xyz_m: [-271.999, 67.848, 0.0]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09]
+        nominal_window_s: [35, 53]
+        target_road_lane_s: [24, 1, 78]
+        offline_opportunity:
+          at_candidate:
+            at_least_2_s: [15.7, 15.7, 15.7]
+            target_seconds: [64.6, 66.0, 66.0]
+          outside_center:
+            at_least_2_s: [13.9, 13.9, 13.9]
+            target_seconds: [56.9, 57.8, 57.8]
+    initial_slant_range_to_targets_m: [42.521, 95.631]
+traffic:
+  target_count: 23
+  cohort_A: 3
+  cohort_B: 6
+  groups:
+    with: 11
+    against: 9
+    side: 3
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: 保持起飞点和 RSU，B 从 J1930 近侧移到 Ego 转入 r24 后的外弧；实景检查桥体遮挡和同层归属。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+baseline_scene_id: Town05/scene_0015

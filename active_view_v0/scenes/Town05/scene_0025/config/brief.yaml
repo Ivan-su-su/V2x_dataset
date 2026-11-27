@@ -1,0 +1,136 @@
+schema_version: 1
+scene_id: Town05/scene_0025
+status: handoff_candidate_offline_preflight
+map: Town05
+seed: 42
+title: J53 到 J979 的北段接力
+family_id: town05_north_t
+split_group: town05_all
+coordinates:
+  world: CARLA_xyz_m
+  evaluation: ego_moving
+junctions:
+- id: 53
+  center_world_xy_m: [-126.386, -89.662]
+- id: 396
+  center_world_xy_m: [-188.019, -89.41]
+- id: 979
+  center_world_xy_m: [-127.279, 0.597]
+- id: 1722
+  center_world_xy_m: [-125.743, 89.561]
+- id: 1882
+  center_world_xy_m: [-125.967, -138.587]
+ego:
+  start_world_xyz_m: [-173.372, -131.71, 0.055]
+  speed_mps: 6.0
+  route_length_m: 398.3
+  junction_path:
+  - junction_id: 1882
+    road_lane: [1907, -1]
+    station_m: 31.4
+  - junction_id: 53
+    road_lane: [68, -2]
+    station_m: 72.0
+  - junction_id: 979
+    road_lane: [1046, -2]
+    station_m: 163.2
+  - junction_id: 1722
+    road_lane: [1756, 2]
+    station_m: 250.8
+  - junction_id: 2240
+    road_lane: [2292, 1]
+    station_m: 311.6
+  - junction_id: 562
+    road_lane: [623, -1]
+    station_m: 398.3
+collaborator_car2:
+  start_world_xyz_m: [-124.895, -42.714, -0.0]
+  speed_mps: 6.0
+  route_length_m: 395.7
+  junction_path:
+  - junction_id: 53
+    road_lane: [144, 1]
+    station_m: 34.5
+  - junction_id: 396
+    road_lane: [507, -1]
+    station_m: 91.8
+  - junction_id: 838
+    road_lane: [967, 1]
+    station_m: 184.5
+  - junction_id: 562
+    road_lane: [572, 1]
+    station_m: 268.5
+  - junction_id: 1722
+    road_lane: [1863, 1]
+    station_m: 331.2
+agents:
+  rsu_junction_id: 1882
+  rsu_base_world_xyz_m: [-122.967, -151.587, 0.055]
+  rsu_world_xyz_m: [-122.967, -151.587, 7.055]
+  uav:
+    initial_reference_junction_id: 53
+    grid_center_world_xyz_m: [-131.594, -86.486, -0.0]
+    initial_candidate: uav_r2_c2
+    height_m: 40
+    step_count_A_to_B: 4
+    event_viewpoints:
+      A:
+        id: uav_r3_c1
+        target_junction_id: 53
+        ground_area_xy_m: [-112.515, -91.561]
+        ground_area_xyz_m: [-112.515, -91.561, 0.0]
+        target_roles: [regional_side_01, regional_side_02, regional_side_03]
+        nominal_window_s: [8, 22]
+        offline_opportunity:
+          at_candidate:
+            at_least_2_s: [7.1, 7.1, 7.1]
+            target_seconds: [20.2, 19.0, 20.2]
+          outside_center:
+            at_least_2_s: [0.0, 0.0, 0.0]
+            target_seconds: [0.0, 0.0, 0.0]
+      B:
+        id: uav_r2_c4
+        target_junction_id: 979
+        ground_area_xy_m: [-131.997, -7.102]
+        ground_area_xyz_m: [-131.997, -7.102, -0.0]
+        target_roles: [regional_side_04, regional_side_05, regional_side_06, regional_side_07, regional_side_08,
+          regional_side_09]
+        nominal_window_s: [27, 48]
+        offline_opportunity:
+          at_candidate:
+            at_least_2_s: [19.8, 19.8, 19.8]
+            target_seconds: [50.1, 50.1, 50.1]
+          outside_center:
+            at_least_2_s: [7.4, 7.4, 7.4]
+            target_seconds: [30.4, 30.4, 30.4]
+    initial_road_lane_s: [68, -2, 16]
+    initial_slant_range_to_targets_m: [44.607, 88.893]
+traffic:
+  target_count: 26
+  cohort_A: 3
+  cohort_B: 6
+  groups:
+    with: 8
+    side: 9
+    against: 9
+  control: CARLA native traffic priorities; all vehicles placed before warmup
+  hypothesis: 从 J53 进口起飞，RSU 回到 J1882 路侧，延续 J979 的后段流；保留原 Car2，检查它是否已补掉 B 区。
+clock:
+  warmup_s: 2.0
+  duration_s: 60.0
+  sensor_interval_s: 0.1
+  saved_frames: 600
+  decision_interval_s: 1.0
+perception:
+  roi_forward_m: [-140.8, 140.8]
+  roi_right_m: [-40.0, 40.0]
+  lidar_range_m: 80.0
+acceptance:
+  detector_vehicle_gt_band: [12, 25]
+  minimum_fraction_in_band: 0.8
+  median_gt_band: [16, 22]
+  minimum_new_rescued_ids_in_late_window: 3
+  verify_on_real_carla: true
+  primary_metric: full_clip_AP50_vs_same_start_hover
+  development_target_gain_pp: [7, 8]
+baseline_scene_id: Town05/scene_0007

@@ -5,7 +5,7 @@ set -euo pipefail
 # bash scripts/preview_town05.sh               # All scenes
 # bash scripts/preview_town05.sh 002 008 011   # Selected scenes
 if [[ ${1:-} == --help || ${1:-} == -h ]]; then
-  echo "Usage: bash $0 [scene number 1–22 ...] (default: 1–15)"
+  echo "Usage: bash $0 [scene number 1–27 ...] (default: 1–15)"
   echo "Optional environment variables: ACTIVEVIEW_DATA_ROOT, RUN_ID"
   exit 0
 fi
@@ -13,8 +13,8 @@ if (( $# == 0 )); then
   set -- {1..15}
 fi
 for selected in "$@"; do
-  if [[ ! "$selected" =~ ^[0-9]{1,4}$ ]] || (( 10#$selected < 1 || 10#$selected > 22 )); then
-    echo "无效场景编号：$selected（应为 0001–0022）" >&2
+  if [[ ! "$selected" =~ ^[0-9]{1,4}$ ]] || (( 10#$selected < 1 || 10#$selected > 27 )); then
+    echo "无效场景编号：$selected（应为 0001–0027）" >&2
     exit 2
   fi
 done
